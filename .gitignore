@@ -1,0 +1,82 @@
+# === Archivos y carpetas de compilación ===
+build/
+out/
+bin/
+classes/
+dist/
+.gradle/
+.gradle-cache/
+.gradle-build/
+
+# === Archivos de logs y temporales ===
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.lock
+*.DS_Store
+Thumbs.db
+
+# === Archivos de sistema ===
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.class
+
+# === Configuración local de IntelliJ / Eclipse ===
+**/.idea/
+**/*.iml
+**/.classpath
+**/.project
+**/.settings/
+
+# === Archivos generados por Gradle ===
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.bat
+!settings.gradle.kts
+!build.gradle.kts
+
+# === Archivos del sistema operativo ===
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+desktop.ini
+
+# === Archivos de pruebas y resultados ===
+test-output/
+reports/
+*.out
+*.err
+
+# === Archivos de audio o multimedia temporales ===
+audios/
+*.wav
+*.mp3
+
+# === Historial de chat (solo para desarrollo local) ===
+chat_history/
+
+# === Archivos de backup o empaquetados ===
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# === Archivos Markdown o documentación generada ===
+README.md
+!README.md
+
+# === Archivos de entorno ===
+.env
+*.env
+
+# === Configuración de sistema o ejecución ===
+run/
+.idea_modules/
