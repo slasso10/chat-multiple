@@ -13,9 +13,9 @@ import java.util.concurrent.Executors;
 
 public class Server {
     private static final int PORT = 12345;
-    // Mapa para guardar los manejadores de clientes conectados (thread-safe)
+
     private static final ConcurrentHashMap<String, ClientHandler> clients = new ConcurrentHashMap<>();
-    // Mapa para gestionar los grupos de chat (thread-safe)
+
     private static final ConcurrentHashMap<String, Set<String>> groups = new ConcurrentHashMap<>();
     private static final ExecutorService pool = Executors.newCachedThreadPool();
     private static final Gson gson = new Gson();
@@ -25,11 +25,10 @@ public class Server {
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (true) {
-                // Acepta una nueva conexión de cliente
+
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Nuevo cliente conectado: " + clientSocket.getInetAddress());
 
-                // Crea y ejecuta un nuevo manejador para este cliente en un hilo separado
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
                 pool.execute(clientHandler);
             }
@@ -38,8 +37,6 @@ public class Server {
         }
     }
 
-    // Métodos para ser usados por los ClientHandlers
-
     public static void addClient(String username, ClientHandler handler) {
         clients.put(username, handler);
         System.out.println("Usuario '" + username + "' se ha unido.");
@@ -47,7 +44,7 @@ public class Server {
 
     public static void removeClient(String username) {
         clients.remove(username);
-        // También removerlo de todos los grupos
+
         groups.values().forEach(members -> members.remove(username));
         System.out.println("Usuario '" + username + "' se ha desconectado.");
     }
@@ -86,7 +83,7 @@ public class Server {
                 Set<String> members = groups.get(message.getRecipient());
                 if (members != null) {
                     for (String member : members) {
-                        // Evitar enviar el mensaje al propio remitente
+
                         if (!member.equals(message.getSender())) {
                             ClientHandler memberHandler = clients.get(member);
                             if (memberHandler != null) {
@@ -96,8 +93,17 @@ public class Server {
                     }
                 }
                 break;
-            // La lógica para llamadas (CALL_REQUEST) sería más compleja, involucrando UDP.
-            // Por simplicidad, este ejemplo se enfoca en TCP.
+
         }
     }
+
+    public static int getGroupMemberCount(String groupName) {
+        Set<String> members = groups.get(groupName);
+        return members != null ? members.size() : 0;
+    }
+
+    public static Set<String> getAllGroups() {
+        return groups.keySet();
+    }
+
 }

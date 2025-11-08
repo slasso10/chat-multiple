@@ -18,19 +18,15 @@ public class Client {
         try (
                 Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in))
-        ) {
+                BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in))) {
             System.out.print("Ingresa tu nombre de usuario: ");
             String username = consoleReader.readLine();
 
-            // 1. Enviar mensaje de conexión
             Message connectMessage = new Message(Message.MessageType.CONNECT, username, "server", "connect");
             out.println(gson.toJson(connectMessage));
 
-            // 2. Iniciar un hilo para escuchar mensajes del servidor
             new Thread(new ServerListener(socket)).start();
 
-            // 3. Bucle para leer comandos del usuario y enviarlos
             System.out.println("Conectado. Escribe tus comandos. Usa '/help' para ver las opciones.");
             String userInput;
             while ((userInput = consoleReader.readLine()) != null) {
@@ -45,7 +41,8 @@ public class Client {
     }
 
     private static void handleUserInput(String input, String username, PrintWriter out) {
-        if (input.isBlank()) return;
+        if (input.isBlank())
+            return;
 
         Message message = null;
         String[] parts = input.split(" ", 3);
@@ -53,43 +50,43 @@ public class Client {
 
         try {
             switch (command) {
-                case "/msg": // Envía mensaje a un usuario: /msg <usuario> <texto>
+                case "/msg":
                     if (parts.length < 3) {
                         System.out.println("Uso: /msg <destinatario> <mensaje>");
                         return;
                     }
                     message = new Message(Message.MessageType.TEXT_DIRECT, username, parts[1], parts[2]);
                     break;
-                case "/groupmsg": // Envía mensaje a un grupo: /groupmsg <grupo> <texto>
+                case "/groupmsg":
                     if (parts.length < 3) {
                         System.out.println("Uso: /groupmsg <grupo> <mensaje>");
                         return;
                     }
                     message = new Message(Message.MessageType.TEXT_GROUP, username, parts[1], parts[2]);
                     break;
-                case "/creategroup": // Crea un grupo: /creategroup <nombre_grupo>
+                case "/creategroup":
                     if (parts.length < 2) {
                         System.out.println("Uso: /creategroup <nombre_grupo>");
                         return;
                     }
                     message = new Message(Message.MessageType.CREATE_GROUP, username, parts[1], "");
                     break;
-                case "/joingroup": // Se une a un grupo: /joingroup <nombre_grupo>
+                case "/joingroup":
                     if (parts.length < 2) {
                         System.out.println("Uso: /joingroup <nombre_grupo>");
                         return;
                     }
                     message = new Message(Message.MessageType.JOIN_GROUP, username, parts[1], "");
                     break;
-                case "/sendvoice": // Envía una nota de voz: /sendvoice <destinatario> <ruta_archivo.wav>
+                case "/sendvoice":
                     if (parts.length < 3) {
                         System.out.println("Uso: /sendvoice <destinatario_o_grupo> <ruta_al_archivo>");
                         return;
                     }
                     byte[] audioBytes = Files.readAllBytes(Paths.get(parts[2]));
-                    // Asumimos que si el destinatario no es un usuario conocido, es un grupo.
-                    // El servidor maneja la lógica de a quién enviarlo.
-                    message = new Message(Message.MessageType.VOICE_NOTE, username, parts[1], audioBytes, Paths.get(parts[2]).getFileName().toString());
+
+                    message = new Message(Message.MessageType.VOICE_NOTE, username, parts[1], audioBytes,
+                            Paths.get(parts[2]).getFileName().toString());
                     break;
                 case "/help":
                     printHelp();
@@ -117,7 +114,6 @@ public class Client {
     }
 }
 
-// Clase interna para escuchar al servidor en un hilo separado
 class ServerListener implements Runnable {
     private final Socket socket;
     private final Gson gson = new Gson();
@@ -134,13 +130,15 @@ class ServerListener implements Runnable {
                 Message message = gson.fromJson(serverResponse, Message.class);
 
                 if (message.getType() == Message.MessageType.VOICE_NOTE) {
-                    // Si recibimos una nota de voz, la guardamos localmente
+
                     String fileName = "received_" + System.currentTimeMillis() + "_" + message.getOriginalFileName();
                     Files.write(Paths.get(fileName), message.getContent());
-                    System.out.printf("\n[Nota de voz de %s]: Archivo guardado como '%s'\n> ", message.getSender(), fileName);
+                    System.out.printf("\n[Nota de voz de %s]: Archivo guardado como '%s'\n> ", message.getSender(),
+                            fileName);
                 } else {
-                    // Imprimimos el mensaje de texto
-                    System.out.printf("\n[%s] %s: %s\n> ", message.getSender(), message.getRecipient(), message.getTextContent());
+
+                    System.out.printf("\n[%s] %s: %s\n> ", message.getSender(), message.getRecipient(),
+                            message.getTextContent());
                 }
             }
         } catch (IOException e) {

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema de Chat HTTP</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>💬 Sistema de Chat</h1>
+      <div class="user-info">
+        <input type="text" id="username" placeholder="Tu nombre de usuario" />
+        <button onclick="connectUser()">Conectar</button>
+        <span id="userStatus" class="status-disconnected">Desconectado</span>
+      </div>
+    </header>
+
+    <div class="main-content">
+      
+      <div class="sidebar">
+       
+        <div class="section">
+          <h3>➕ Crear Grupo</h3>
+          <div class="input-group">
+            <input type="text" id="groupName" placeholder="Nombre del grupo" />
+            <button onclick="createGroup()">Crear</button>
+          </div>
+        </div>
+
+        
+        <div class="section">
+          <h3>🔗 Unirse a Grupo</h3>
+          <div class="input-group">
+            <input type="text" id="joinGroupName" placeholder="Nombre del grupo" />
+            <button onclick="joinGroup()">Unirse</button>
+          </div>
+        </div>
+
+        
+        <div class="section">
+          <h3>🏠 Grupos Disponibles</h3>
+          <div id="groupsList" class="list">
+            <div class="list-item">Cargando grupos...</div>
+          </div>
+        </div>
+
+        
+        <div class="section">
+          <h3>👥 Usuarios Conectados</h3>
+          <div id="usersList" class="list">
+            <div class="list-item">Cargando usuarios...</div>
+          </div>
+        </div>
+      </div>
+
+      
+      <div class="chat-area">
+        <div class="chat-header">
+          <h3 id="currentChat">💭 Selecciona un chat para comenzar</h3>
+          <div id="chatInfo" class="chat-info"></div>
+        </div>
+
+        <div id="messagesContainer" class="messages-container">
+          <div id="liveMessages" class="messages-subcontainer">
+            <div class="welcome-message">
+              <h3>Bienvenido al Chat HTTP</h3>
+              <p>Conéctate y selecciona un usuario o grupo para comenzar a chatear</p>
+            </div>
+          </div>
+
+          <div id="historyMessages" class="messages-subcontainer" style="display:none"></div>
+
+          <div class="chat-controls">
+            <button id="viewHistoryBtn" class="history-btn" style="display:none">🕓 Ver historial</button>
+          </div>
+        </div>
+
+        <div class="message-input">
+          <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." disabled />
+          <button id="sendButton" onclick="sendMessage()" disabled>📤</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-panel">
+      <div class="status-item">
+        <span class="status-label">Usuario:</span>
+        <span id="currentUserDisplay">No conectado</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Chat activo:</span>
+        <span id="activeChatDisplay">Ninguno</span>
+      </div>
+      <button onclick="testConnection && testConnection()" class="test-btn"> Probar Conexión</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
