@@ -96,21 +96,29 @@ header h1 { font-size: 1.8rem; font-weight: 600; }
   padding: 1.5rem;
   gap: 12px;
   background: linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);
-  height: 100%;       
-  min-height: 0;      
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
 }
 
+.messages-subcontainer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding-right: 10px;
+}
+
+#liveMsgs {
+  flex-direction: column;
+}
 
 #historyMsgs {
-  display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  min-height: 0;       
-  max-height: 100%;
   overflow-y: auto;
   padding-right: 10px;
-  scroll-behavior: smooth;
 }
 
 
@@ -136,7 +144,11 @@ header h1 { font-size: 1.8rem; font-weight: 600; }
 .message-input button { width:50px; height:50px; border-radius:50%; border:none; background: linear-gradient(135deg,#3498db,#2980b9); color:white; font-size:1.3rem; cursor:pointer; }
 
 
-.status-panel { background:#2c3e50; color:white; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; border-top:3px solid #3498db; }
+.status-panel { background:#2c3e50; color:white; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; border-top:3px solid #3498db; flex-wrap:wrap; }
+.status-item { margin: 5px 0; }
+.status-label { font-weight: bold; margin-right: 10px; }
+.test-btn { padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+.test-btn:hover { background: #c0392b; }
 
 .welcome-message { text-align:center; color:#7f8c8d; margin-top:6rem; }
 .empty { color:#7f8c8d; padding:8px; }
@@ -145,3 +157,26 @@ header h1 { font-size: 1.8rem; font-weight: 600; }
 
 .sidebar::-webkit-scrollbar { width:8px; }
 .sidebar::-webkit-scrollbar-thumb { background:#3498db; border-radius:10px; }
+
+.chat-controls {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  background: #ecf0f1;
+  border-top: 1px solid #bdc3c7;
+}
+
+.history-btn {
+  padding: 10px 20px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.history-btn:hover {
+  background: #2980b9;
+}

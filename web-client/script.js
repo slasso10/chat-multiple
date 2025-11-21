@@ -143,29 +143,23 @@ function selectChat(target, isGroup, evt) {
   evt?.currentTarget?.classList.add('active');
   el.activeChatDisplay.textContent = target;
 
-  
+
   el.messagesContainer.innerHTML = `
     <p class="system-msg">💬 Chat con <b>${target}</b></p>
     <div id="liveMsgs" class="messages-subcontainer"></div>
     <div id="historyMsgs" class="messages-subcontainer" style="display:none"></div>
   `;
 
-  
-  if (el.chatInfo) {
-    el.chatInfo.innerHTML = `<button id="viewHistoryBtn" class="history-btn">🕓 Ver historial</button>`;
-    document.getElementById('viewHistoryBtn').onclick = toggleHistoryView;
-  } else {
-    
-    const btn = document.createElement('button');
-    btn.id = 'viewHistoryBtn';
-    btn.className = 'history-btn';
-    btn.textContent = '🕓 Ver historial';
-    el.messagesContainer.appendChild(btn);
-    btn.onclick = toggleHistoryView;
-  }
+  // Add controls at the end
+  const controls = document.createElement('div');
+  controls.className = 'chat-controls';
+  controls.innerHTML = `<button id="viewHistoryBtn" class="history-btn">🕓 Ver historial</button>`;
+  el.messagesContainer.appendChild(controls);
 
-  
-  loadLiveMessages(target);
+  document.getElementById('viewHistoryBtn').onclick = toggleHistoryView;
+
+  // Start with empty live messages - no loading of old messages
+  // loadLiveMessages(target); // Remove this to keep chat empty
 }
 
 
@@ -205,43 +199,14 @@ async function sendMessage() {
 
 
 async function loadLiveMessages(chatId) {
+  // For live chat, start empty - don't load old messages
+  // Only show messages sent during this session
   if (!chatId || showingHistory) return;
 
-  const params = isGroupChat
-    ? `type=group&name=${encodeURIComponent(chatId)}`
-    : `type=direct&user1=${encodeURIComponent(currentUser)}&user2=${encodeURIComponent(chatId)}`;
-
-  try {
-    const res = await fetch(`${API_BASE}/history?${params}`);
-    const data = await res.json();
-    const cont = document.getElementById('liveMsgs');
-    if (!cont) return;
-    cont.innerHTML = '';
-
-    if (data.success && data.messages && data.messages.length > 0) {
-      
-      const FIVE_MIN = 5 * 60 * 1000;
-      const now = Date.now();
-
-      const recent = data.messages
-        .filter(m => m.time) 
-        .filter(m => (now - new Date(m.time).getTime()) <= FIVE_MIN)
-       
-        .slice(-50); 
-
-      recent.forEach(msg => {
-        const div = document.createElement('div');
-        div.className = msg.sender === currentUser ? 'msg msg-out' : 'msg msg-in';
-        div.innerHTML = `<b>${msg.sender}:</b> ${msg.text}`;
-        cont.appendChild(div);
-      });
-    }
-
-    
-    el.messagesContainer.scrollTop = el.messagesContainer.scrollHeight;
-  } catch (err) {
-    console.error('loadLiveMessages error', err);
-  }
+  const cont = document.getElementById('liveMsgs');
+  if (!cont) return;
+  // Keep existing messages, don't clear and reload
+  // cont.innerHTML = ''; // Remove this to keep live messages
 }
 
 
@@ -257,18 +222,24 @@ async function toggleHistoryView() {
     if (live) live.style.display = 'none';
     if (old) {
       old.style.display = 'flex';
-      el.messagesContainer.scrollTop = el.messagesContainer.scrollHeight;
+      // Scroll to bottom after loading history
+      setTimeout(() => {
+        old.scrollTop = old.scrollHeight;
+      }, 100);
     }
   } else {
     btn.textContent = '🕓 Ver historial';
     if (old) old.style.display = 'none';
     if (live) live.style.display = 'flex';
-    await loadLiveMessages(currentChat);
+    // Scroll to bottom of live messages
+    setTimeout(() => {
+      live.scrollTop = live.scrollHeight;
+    }, 100);
   }
 }
 
 
-async function loadOldHistory() {
+async function loadOldHistory(container = null) {
   if (!currentChat) return;
 
   const params = isGroupChat
@@ -278,7 +249,7 @@ async function loadOldHistory() {
   try {
     const res = await fetch(`${API_BASE}/history?${params}`);
     const data = await res.json();
-    const cont = document.getElementById('historyMsgs');
+    const cont = container || document.getElementById('historyMsgs');
     if (!cont) return;
     cont.innerHTML = '';
 
@@ -286,10 +257,13 @@ async function loadOldHistory() {
       data.messages.forEach(msg => {
         const div = document.createElement('div');
         div.className = 'msg history-msg';
-        div.innerHTML = `[${msg.time || ''}] <b>${msg.sender || ''}:</b> ${msg.text || ''}`;
+        if (msg.recipient && !isGroupChat) {
+          div.innerHTML = `[${msg.time || ''}] <b>${msg.sender || ''} -> ${msg.recipient || ''}:</b> ${msg.text || ''}`;
+        } else {
+          div.innerHTML = `[${msg.time || ''}] <b>${msg.sender || ''}:</b> ${msg.text || ''}`;
+        }
         cont.appendChild(div);
       });
-      el.messagesContainer.scrollTop = el.messagesContainer.scrollHeight;
       showNotification('📜 Mostrando historial completo');
     } else {
       cont.innerHTML = '<p class="system-msg">Sin mensajes antiguos</p>';
@@ -314,7 +288,24 @@ el.username.addEventListener('keypress', e => e.key === 'Enter' && connectUser()
 el.messageInput.addEventListener('keypress', e => e.key === 'Enter' && sendMessage());
 
 
+async function testConnection() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    const data = await res.json();
+    showNotification(`Estado: ${data.status}, Usuarios: ${data.usersConnected.length}`);
+  } catch (err) {
+    showNotification('Error al probar conexión');
+  }
+}
+
+function closeHistoryModal() {
+  const modal = document.getElementById('historyModal');
+  modal.style.display = 'none';
+}
+
 window.connectUser = connectUser;
 window.createGroup = createGroup;
 window.joinGroup = joinGroup;
 window.sendMessage = sendMessage;
+window.testConnection = testConnection;
+window.closeHistoryModal = closeHistoryModal;

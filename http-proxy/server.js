@@ -184,9 +184,21 @@ app.get('/api/history', (req, res) => {
     .split('\n')
     .filter(l => l)
     .map(line => {
-      
       const match = line.match(/\[(.*?)\]\s(.*?):\s(.*)/);
-      return match ? { time: match[1], sender: match[2], text: match[3] } : { text: line };
+      if (match) {
+        const time = match[1];
+        const senderPart = match[2];
+        const text = match[3];
+        if (senderPart.includes(' -> ')) {
+          // Direct message: sender -> recipient
+          const [sender, recipient] = senderPart.split(' -> ');
+          return { time, sender, recipient, text };
+        } else {
+          // Group message: sender
+          return { time, sender: senderPart, text };
+        }
+      }
+      return { text: line };
     });
 
   res.json({ success: true, messages: lines });

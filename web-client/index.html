@@ -71,10 +71,10 @@
           </div>
 
           <div id="historyMessages" class="messages-subcontainer" style="display:none"></div>
+        </div>
 
-          <div class="chat-controls">
-            <button id="viewHistoryBtn" class="history-btn" style="display:none">🕓 Ver historial</button>
-          </div>
+        <div id="chatControls" class="chat-controls">
+          <button id="viewHistoryBtn" class="history-btn" style="display:none">🕓 Ver historial</button>
         </div>
 
         <div class="message-input">
@@ -94,6 +94,17 @@
         <span id="activeChatDisplay">Ninguno</span>
       </div>
       <button onclick="testConnection && testConnection()" class="test-btn"> Probar Conexión</button>
+    </div>
+  </div>
+
+  <!-- Modal for History -->
+  <div id="historyModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Historial de Chat</h2>
+        <span class="close" onclick="closeHistoryModal()">&times;</span>
+      </div>
+      <div id="modalHistoryMsgs" class="modal-messages"></div>
     </div>
   </div>
 
