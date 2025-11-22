@@ -1,14 +1,30 @@
-# === Archivos y carpetas de compilación ===
+# ============================================
+# === BUILD / COMPILACIÓN ====================
+# ============================================
 build/
 out/
 bin/
 classes/
 dist/
+
+# Gradle (archivos generados que NO van al repo)
 .gradle/
 .gradle-cache/
 .gradle-build/
 
-# === Archivos de logs y temporales ===
+# PERMITIR Gradle Wrapper (SÍ debe estar en el repo)
+!gradle/
+!gradle/wrapper/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradlew
+!gradlew.bat
+!settings.gradle.kts
+!build.gradle.kts
+
+# ============================================
+# === LOGS Y ARCHIVOS TEMPORALES ============
+# ============================================
 *.log
 *.tmp
 *.temp
@@ -16,91 +32,66 @@ dist/
 *.swp
 *.swo
 *.lock
-*.DS_Store
-Thumbs.db
 
-# === Archivos de sistema ===
+# ============================================
+# === ARCHIVOS DE SISTEMA ====================
+# ============================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+
+# ============================================
+# === IDE CONFIG (IGNORAR) ==================
+# ============================================
 .idea/
 *.iml
 *.ipr
 *.iws
 .vscode/
-*.class
-
-# === Configuración local de IntelliJ / Eclipse ===
 **/.idea/
 **/*.iml
 **/.classpath
 **/.project
 **/.settings/
 
-# === Archivos generados por Gradle ===
-.gradle/
-!gradle/wrapper/gradle-wrapper.jar
-!gradlew
-!gradlew.bat
-!settings.gradle.kts
-!build.gradle.kts
-
-# === Archivos del sistema operativo ===
-.DS_Store
-ehthumbs.db
-Icon?
-Thumbs.db
-desktop.ini
-
-# === Archivos de pruebas y resultados ===
+# ============================================
+# === PRUEBAS Y REPORTES =====================
+# ============================================
 test-output/
 reports/
 *.out
 *.err
 
-# === Archivos de audio o multimedia temporales ===
+# ============================================
+# === AUDIO / MEDIA TEMPORAL ================
+# ============================================
 audios/
 *.wav
 *.mp3
 
-# === Historial de chat (solo para desarrollo local) ===
-chat_history/
-
-# === Archivos de backup o empaquetados ===
+# ============================================
+# === ARCHIVOS EMPAQUETADOS ==================
+# ============================================
 *.zip
 *.tar
 *.tar.gz
 *.rar
 
-# === Archivos Markdown o documentación generada ===
-README.md
-!README.md
-
-# === Archivos de entorno ===
+# ============================================
+# === ENTORNOS ================================
+# ============================================
 .env
 *.env
 
-# === Configuración de sistema o ejecución ===
+# ============================================
+# === OTROS ==================================
+# ============================================
 run/
-.idea_modules/
+chat_history/
 
-# Java
-build/
-bin/
-*.class
-*.jar
-
-# Node.js
+# Node
 node_modules/
 npm-debug.log*
 
-# Historial y temporales
-chat_history/
-*.log
-*.tmp
-
-# IDEs
-.idea/
-.vscode/
-*.iml
-
-# Sistema
-.DS_Store
-Thumbs.db
