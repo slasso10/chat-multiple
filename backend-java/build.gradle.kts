@@ -32,3 +32,13 @@ tasks.register<JavaExec>("runClient") {
     mainClass.set("com.chat.client.Client")
     standardInput = System.`in` 
 }
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+application {
+    mainClass.set("com.chat.server.Server")
+}
