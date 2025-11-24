@@ -14,7 +14,27 @@ public class GroupServiceI implements GroupService {
     @Override
     public String createGroup(String ownerId, String groupName, String[] memberIds, Current current) {
         try {
-            return chatCore.createGroup(ownerId, groupName, memberIds);
+            String groupId = chatCore.createGroup(ownerId, groupName, memberIds);
+
+            // Notificar a miembros del grupo (si están registrados en callbacks)
+            for (String member : chatCore.getGroups().get(groupId).memberIds) {
+                compunet.ClientCallbackPrx cb = ChatServiceI.callbacks.get(member);
+                if (cb != null) {
+                    try {
+                        ChatSummary summary = new ChatSummary(
+                                groupId,
+                                chatCore.getGroups().get(groupId).name,
+                                "Grupo creado",
+                                System.currentTimeMillis(),
+                                true);
+                        cb.onNewGroup(summary);
+                    } catch (Exception e) {
+                        System.err.println("Error notificando nuevo grupo a " + member + ": " + e.getMessage());
+                    }
+                }
+            }
+
+            return groupId;
         } catch (Exception e) {
             System.err.println("Error al crear grupo: " + e.getMessage());
             throw e;
@@ -44,7 +64,20 @@ public class GroupServiceI implements GroupService {
     @Override
     public void sendGroupMessage(String fromUserId, String groupId, String content, Current current) {
         try {
-            chatCore.sendGroupMessage(fromUserId, groupId, content);
+            // ChatCore ahora retorna el Message
+            Message msg = chatCore.sendGroupMessage(fromUserId, groupId, content);
+
+            // Notificar a cada miembro del grupo (si están registrados)
+            for (String member : chatCore.getGroups().get(groupId).memberIds) {
+                compunet.ClientCallbackPrx cb = ChatServiceI.callbacks.get(member);
+                if (cb != null) {
+                    try {
+                        cb.onNewMessage(msg);
+                    } catch (Exception e) {
+                        System.err.println("Error notificando a miembro " + member + ": " + e.getMessage());
+                    }
+                }
+            }
         } catch (Exception e) {
             System.err.println("Error al enviar mensaje al grupo: " + e.getMessage());
             throw e;

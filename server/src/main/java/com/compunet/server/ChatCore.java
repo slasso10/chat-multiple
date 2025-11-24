@@ -4,7 +4,6 @@ import compunet.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public class ChatCore {
     // Almacenamiento en memoria
@@ -17,7 +16,7 @@ public class ChatCore {
     private final AtomicLong groupIdCounter = new AtomicLong(0);
 
     // Clase interna para representar un grupo
-    private static class Group {
+    public static class Group {
         String id;
         String name;
         String ownerId;
@@ -51,7 +50,9 @@ public class ChatCore {
 
     // === Mensajes directos ===
 
-    public void sendDirectMessage(String fromUserId, String toUserId, String content) {
+    // Ahora devuelve el Message creado para que el servicio pueda notificar
+    // callbacks
+    public Message sendDirectMessage(String fromUserId, String toUserId, String content) {
         User sender = users.get(fromUserId);
         if (sender == null) {
             throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
@@ -63,17 +64,20 @@ public class ChatCore {
         }
 
         String chatKey = getChatKey(fromUserId, toUserId);
+        long ts = System.currentTimeMillis();
+
         Message message = new Message(
                 String.valueOf(messageIdCounter.incrementAndGet()),
                 fromUserId,
                 sender.name,
                 content,
-                System.currentTimeMillis(),
+                ts,
                 toUserId,
                 false);
 
         directMessages.computeIfAbsent(chatKey, k -> new ArrayList<>()).add(message);
-        System.out.println("Mensaje directo enviado de " + fromUserId + " a " + toUserId);
+        System.out.println("Mensaje directo creado de " + fromUserId + " a " + toUserId + " (id=" + message.id + ")");
+        return message;
     }
 
     public List<Message> getDirectChatMessages(String userId, String otherUserId) {
@@ -124,6 +128,7 @@ public class ChatCore {
 
     // === Gestión de grupos ===
 
+    // Se mantiene createGroup (retorna groupId)
     public String createGroup(String ownerId, String groupName, String[] memberIds) {
         User owner = users.get(ownerId);
         if (owner == null) {
@@ -162,7 +167,8 @@ public class ChatCore {
 
     // === Mensajes de grupo ===
 
-    public void sendGroupMessage(String fromUserId, String groupId, String content) {
+    // Ahora devuelve el Message creado
+    public Message sendGroupMessage(String fromUserId, String groupId, String content) {
         User sender = users.get(fromUserId);
         if (sender == null) {
             throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
@@ -177,17 +183,20 @@ public class ChatCore {
             throw new RuntimeException("Usuario no es miembro del grupo: " + fromUserId);
         }
 
+        long ts = System.currentTimeMillis();
+
         Message message = new Message(
                 String.valueOf(messageIdCounter.incrementAndGet()),
                 fromUserId,
                 sender.name,
                 content,
-                System.currentTimeMillis(),
+                ts,
                 groupId,
                 true);
 
         groupMessages.computeIfAbsent(groupId, k -> new ArrayList<>()).add(message);
-        System.out.println("Mensaje enviado al grupo " + groupId + " por " + fromUserId);
+        System.out.println("Mensaje creado en el grupo " + groupId + " por " + fromUserId + " (id=" + message.id + ")");
+        return message;
     }
 
     public List<Message> getGroupChatMessages(String groupId) {
@@ -220,5 +229,10 @@ public class ChatCore {
 
         summaries.sort((a, b) -> Long.compare(b.lastMessageTimestamp, a.lastMessageTimestamp));
         return summaries;
+    }
+
+    // Exponer groups si algún servicio necesita revisar miembros
+    public Map<String, Group> getGroups() {
+        return Collections.unmodifiableMap(groups);
     }
 }

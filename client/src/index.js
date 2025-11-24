@@ -7,46 +7,84 @@ const chatState = require('./ChatStateManager');
 const messageReceiver = require('./MessageReceiver');
 const uiController = require('./ChatUIController');
 
-// Función principal de inicialización
+// ===============================
+//  Inicialización principal
+// ===============================
 async function initializeApp() {
     try {
-        
-        // Inicializar UI primero
         uiController.initialize();
-
-        // Ahora sí puedes mostrar loading
         uiController.showLoading('Conectando al servidor...');
-        
-        // Conectar al servidor Ice
+
+        // 1. Conectar a ICE primero (no requiere usuario)
         await iceManager.initialize();
-        
-        console.log('Aplicación inicializada correctamente');
-        
-        // Cargar datos iniciales
-        await loadInitialData();
-        
-        // Ocultar loading
+
         uiController.hideLoading();
-        
-    } catch (error) {
-        console.error('Error al inicializar la aplicación:', error);
+
+        // 2. Mostrar modal login
+        setupLoginModal();
+
+    } catch (err) {
+        console.error("Error al inicializar:", err);
         uiController.hideLoading();
-        
-        // Mostrar error al usuario
-        alert('No se pudo conectar al servidor. Por favor, asegúrate de que el servidor está ejecutándose en localhost:10000');
+        alert("No se pudo conectar al servidor ICE.");
     }
 }
 
+// ===============================
+//  Login
+// ===============================
+function setupLoginModal() {
+    const loginModal = document.getElementById("modal-login");
+    const loginInput = document.getElementById("login-name");
+    const loginButton = document.getElementById("btn-login");
+
+    loginModal.style.display = "flex";
+
+    loginButton.onclick = async () => {
+        const name = loginInput.value.trim();
+        if (name === "") {
+            alert("Escribe un nombre");
+            return;
+        }
+
+        // ID único real
+        const userId = crypto.randomUUID();
+
+        // Guardar en estado
+        chatState.setCurrentUser(userId, name);
+
+        try {
+            // Registrar en Ice
+            await iceManager.registerUser(userId, name);
+
+            // Registrar callback RPC
+            await iceManager.registerCallback(userId);
+
+            // Mostrar nombre en UI
+            document.getElementById("current-user-name").innerText = name;
+
+            loginModal.style.display = "none";
+
+            // Cargar datos iniciales
+            await loadInitialData();
+
+        } catch (error) {
+            console.error("Error en login:", error);
+            alert("Error al registrar usuario en el servidor.");
+        }
+    };
+}
+
+// ===============================
+//  Cargar chats y mensajes
+// ===============================
 async function loadInitialData() {
     try {
         console.log('Cargando datos iniciales...');
-        
-        // Cargar chats del usuario
+
         await messageReceiver.refreshChats();
-        
-        // Renderizar lista de chats
         uiController.renderChatList();
-        
+
         console.log('Datos iniciales cargados');
     } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
@@ -54,7 +92,9 @@ async function loadInitialData() {
     }
 }
 
-// Manejar cierre de ventana
+// ===============================
+//  Cerrar conexión al salir
+// ===============================
 window.addEventListener('beforeunload', async () => {
     try {
         await iceManager.shutdown();
@@ -63,14 +103,18 @@ window.addEventListener('beforeunload', async () => {
     }
 });
 
-// Inicializar cuando el DOM esté listo
+// ===============================
+//  Arranque DOM
+// ===============================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     initializeApp();
 }
 
-// Exportar para depuración en consola
+// ===============================
+//  Debug
+// ===============================
 window.chatDebug = {
     iceManager,
     chatState,

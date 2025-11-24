@@ -140,6 +140,25 @@
 
     Slice.defineSequence(compunet, "UserSeqHelper", "compunet.User", false);
 
+    const iceC_compunet_ClientCallback_ids = [
+        "::Ice::Object",
+        "::compunet::ClientCallback"
+    ];
+
+    compunet.ClientCallback = class extends Ice.Object
+    {
+    };
+
+    compunet.ClientCallbackPrx = class extends Ice.ObjectPrx
+    {
+    };
+
+    Slice.defineOperations(compunet.ClientCallback, compunet.ClientCallbackPrx, iceC_compunet_ClientCallback_ids, 1,
+    {
+        "onNewMessage": [, , , , , [[compunet.Message]], , , , ],
+        "onNewGroup": [, , , , , [[compunet.ChatSummary]], , , , ]
+    });
+
     const iceC_compunet_ChatService_ids = [
         "::Ice::Object",
         "::compunet::ChatService"
@@ -160,7 +179,9 @@
         "getAllUsers": [, , , , ["compunet.UserSeqHelper"], , , , , ],
         "sendDirectMessage": [, , , , , [[7], [7], [7]], , , , ],
         "getDirectChatMessages": [, , , , ["compunet.MessageSeqHelper"], [[7], [7]], , , , ],
-        "getUserDirectChats": [, , , , ["compunet.ChatSummarySeqHelper"], [[7]], , , , ]
+        "getUserDirectChats": [, , , , ["compunet.ChatSummarySeqHelper"], [[7]], , , , ],
+        "registerCallback": [, , , , , [["compunet.ClientCallbackPrx"], [7]], , , , ],
+        "unregisterCallback": [, , , , , [[7]], , , , ]
     });
 
     const iceC_compunet_GroupService_ids = [
@@ -187,6 +208,5 @@
     });
     exports.compunet = compunet;
 }
-
 (module, require, exports));
 

@@ -10,10 +10,11 @@ class ChatStateManager {
 
     // === Gestión de usuario actual ===
 
-    setCurrentUser(userId, userName) {
-        this.currentUserId = userId;
-        this.currentUserName = userName;
-    }
+    setCurrentUser(user) {
+        this.currentUserId = user.id;
+        this.currentUserName = user.name;
+    }   
+
 
     getCurrentUserId() {
         return this.currentUserId;
@@ -26,8 +27,19 @@ class ChatStateManager {
     // === Utilidad para timestamps Ice.Long ===
 
     convertTimestamp(ts) {
-        if (typeof ts === 'object' && ts !== null && ts.toString) {
-            return Number(ts.toString());
+        if (typeof ts === 'object' && ts !== null) {
+            // Si es un objeto Ice.Long, convertirlo a número
+            if (ts.toNumber) {
+                return ts.toNumber();
+            }
+            // Si tiene propiedades high/low (Ice.Long)
+            if (ts.high !== undefined && ts.low !== undefined) {
+                return (ts.high * 4294967296) + (ts.low >>> 0);
+            }
+            // Intentar toString como fallback
+            if (ts.toString) {
+                return Number(ts.toString());
+            }
         }
         return Number(ts);
     }
@@ -131,36 +143,48 @@ class ChatStateManager {
     // === Formateo de timestamps ===
 
     formatTimestamp(timestamp) {
-        
+        if (!timestamp || timestamp === 0) {
+            return '-';
+        }
 
-        const ts = this.convertTimestamp(timestamp);
-        const date = new Date(ts);
-        const now = new Date();
+        let ms = timestamp;
+        try {
+            if (typeof timestamp === 'object' && 'toNumber' in timestamp) {
+                ms = timestamp.toNumber();
+            }
+        } catch (e) {
+            return '-';
+        }
+
+        const date = new Date(ms);
 
         if (isNaN(date.getTime())) {
-            return "–";
+            return '-';
         }
+
+        const now = new Date();
 
         // Hoy → solo hora
         if (date.toDateString() === now.toDateString()) {
             return date.toLocaleTimeString('es-ES', {
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
             });
         }
 
-        // Esta semana → día abreviado
+        // Esta semana → día (lun, mar, ...)
         const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
         if (diffDays < 7) {
             return date.toLocaleDateString('es-ES', { weekday: 'short' });
         }
 
-        // Más antiguo → dd/mm
+        // Otro día → dd/mm
         return date.toLocaleDateString('es-ES', {
             day: '2-digit',
-            month: '2-digit'
+            month: '2-digit',
         });
     }
+
 }
 
 const chatState = new ChatStateManager();

@@ -3,28 +3,26 @@ const chatState = require('./ChatStateManager');
 
 class MessageReceiver {
     async loadChatMessages(chatId, isGroup) {
-        const userId = chatState.getCurrentUserId();
+        let messages;
 
-        try {
-            let messages;
-
-            if (isGroup) {
-                // Obtener mensajes del grupo
-                messages = await iceManager.getGroupChatMessages(chatId);
-            } else {
-                // Obtener mensajes del chat directo
-                messages = await iceManager.getDirectChatMessages(userId, chatId);
-            }
-
-            chatState.setActiveMessages(messages);
-            console.log(`Mensajes cargados: ${messages.length}`);
-            
-            return messages;
-        } catch (error) {
-            console.error('Error al cargar mensajes:', error);
-            throw error;
+        if (isGroup) {
+            messages = await iceManager.getGroupChatMessages(chatId);
+        } else {
+            const otherUserId = chatId; 
+            const myId = chatState.getCurrentUserId();
+            messages = await iceManager.getDirectChatMessages(myId, otherUserId);
         }
+
+        // Ordenar por timestamp ascendente
+        messages.sort((a, b) => {
+            const tA = (typeof a.timestamp === 'object' ? a.timestamp.toNumber() : a.timestamp);
+            const tB = (typeof b.timestamp === 'object' ? b.timestamp.toNumber() : b.timestamp);
+            return tA - tB;
+        });
+
+        chatState.setActiveMessages(messages);
     }
+
 
     async refreshChats() {
         const userId = chatState.getCurrentUserId();
@@ -77,6 +75,13 @@ class MessageReceiver {
             throw error;
         }
     }
+
+    handleIncomingMessage(message) {
+        chatState.addMessage(message);
+        uiController.renderMessages();
+        uiController.renderChatList();
+    }
+
 }
 
 // Exportar instancia singleton

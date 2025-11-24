@@ -1,5 +1,8 @@
 module compunet {
-    // Estructuras de datos básicas
+
+    // ============================
+    //   Estructuras de datos
+    // ============================
     struct User {
         string id;
         string name;
@@ -11,7 +14,7 @@ module compunet {
         string senderName;
         string content;
         long timestamp;
-        string chatId; // ID del chat (userId para directos, groupId para grupos)
+        string chatId;
         bool isGroupMessage;
     };
 
@@ -23,33 +26,48 @@ module compunet {
         bool isGroup;
     };
 
-    // Secuencias
+    // ============================
+    //   Secuencias
+    // ============================
     sequence<string> StringSeq;
     sequence<Message> MessageSeq;
     sequence<ChatSummary> ChatSummarySeq;
     sequence<User> UserSeq;
 
-    // Interfaz para gestión de mensajes directos
+    // ============================
+    //   CALLBACK del cliente
+    // ============================
+    interface ClientCallback {
+        void onNewMessage(Message msg);
+        void onNewGroup(ChatSummary chat);
+    };
+
+    // ============================
+    //   Chat directo
+    // ============================
     interface ChatService {
-        // Registro básico de usuarios
         void registerUser(string userId, string userName);
         User getUser(string userId);
         UserSeq getAllUsers();
-        
+
         // Mensajes directos
         void sendDirectMessage(string fromUserId, string toUserId, string content);
         MessageSeq getDirectChatMessages(string userId, string otherUserId);
         ChatSummarySeq getUserDirectChats(string userId);
+
+        // Registro de callbacks
+        void registerCallback(ClientCallback* proxy, string userId);
+        void unregisterCallback(string userId);
     };
 
-    // Interfaz para gestión de grupos
+    // ============================
+    //   Grupos
+    // ============================
     interface GroupService {
-        // Gestión de grupos
         string createGroup(string ownerId, string groupName, StringSeq memberIds);
         void addMembersToGroup(string groupId, StringSeq memberIds);
         StringSeq getGroupMembers(string groupId);
-        
-        // Mensajes de grupo
+
         void sendGroupMessage(string fromUserId, string groupId, string content);
         MessageSeq getGroupChatMessages(string groupId);
         ChatSummarySeq getUserGroupChats(string userId);
