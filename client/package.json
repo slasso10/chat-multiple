@@ -1,0 +1,29 @@
+{
+  "name": "compunet-chat-client",
+  "version": "1.0.0",
+  "description": "Cliente web para sistema de chat con ZeroC Ice",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "serve": "webpack serve --mode development --open"
+  },
+  "keywords": [
+    "chat",
+    "ice",
+    "zeroc"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "css-loader": "^6.11.0",
+    "html-webpack-plugin": "^5.5.3",
+    "style-loader": "^3.3.4",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
+  },
+  "dependencies": {
+    "ice": "^3.7.10"
+  }
+}

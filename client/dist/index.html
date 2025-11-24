@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompuNet Chat</title>
+<script defer src="bundle.js"></script></head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar con lista de chats -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Chats</h2>
+                <div class="user-info">
+                    <span id="current-user-name">Usuario</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-actions">
+                <button id="btn-new-group" class="btn-action">+ Nuevo Grupo</button>
+                <button id="btn-refresh-chats" class="btn-action">🔄 Actualizar</button>
+            </div>
+            
+            <div class="chat-list" id="chat-list">
+                <!-- La lista de chats se renderizará dinámicamente aquí -->
+            </div>
+        </div>
+        
+        <!-- Área principal de chat -->
+        <div class="chat-area">
+            <div class="chat-header" id="chat-header">
+                <h3 id="chat-name">Selecciona un chat</h3>
+                <span id="chat-type" class="chat-type-badge"></span>
+            </div>
+            
+            <div class="messages-container" id="messages-container">
+                <div class="empty-state">
+                    <p>Selecciona un chat para ver los mensajes</p>
+                </div>
+            </div>
+            
+            <div class="message-input-container">
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    placeholder="Escribe un mensaje..." 
+                    disabled
+                />
+                <button id="btn-send-message" class="btn-send" disabled>Enviar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para crear grupos -->
+    <div id="modal-new-group" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Crear Nuevo Grupo</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="group-name">Nombre del grupo:</label>
+                    <input type="text" id="group-name" placeholder="Ej: Proyecto Universitario" />
+                </div>
+                <div class="form-group">
+                    <label>Selecciona miembros:</label>
+                    <div id="users-list" class="users-list">
+                        <!-- Lista de usuarios disponibles -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-group" class="btn-secondary">Cancelar</button>
+                <button id="btn-create-group" class="btn-primary">Crear Grupo</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Conectando al servidor...</p>
+    </div>
+</body>
+</html>

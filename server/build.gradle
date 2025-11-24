@@ -1,0 +1,66 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.compunet'
+version = '1.0.0'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://repo.zeroc.com/releases"
+    }
+}
+
+dependencies {
+    implementation 'com.zeroc:ice:3.7.10'
+    implementation 'com.zeroc:glacier2:3.7.10'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+def generatedSourcesDir = file("${buildDir}/generated-src")
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', generatedSourcesDir]
+        }
+    }
+}
+
+// Tarea para generar código Java desde archivos .ice
+task generateIceCode(type: Exec) {
+    def iceFile = file('src/main/slice/chat.ice')
+    def outputDir = generatedSourcesDir
+    
+    inputs.file(iceFile)
+    outputs.dir(outputDir)
+    
+    doFirst {
+        outputDir.mkdirs()
+    }
+    
+    commandLine 'slice2java', '--output-dir', outputDir, iceFile
+}
+
+// Asegurar que el código Ice se genere antes de compilar
+compileJava.dependsOn generateIceCode
+
+application {
+    mainClass = 'com.compunet.server.ServerMain'
+}
+
+// Configuración para ejecutar el servidor
+run {
+    standardInput = System.in
+}
+
+task runServer(type: JavaExec) {
+    group = 'application'
+    description = 'Runs the Chat Server'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.compunet.server.ServerMain'
+    standardInput = System.in
+}

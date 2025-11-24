@@ -1,0 +1,2904 @@
+🚀 Guía de Inicio Rápido - CompuNet Chat
+Esta guía te llevará paso a paso desde cero hasta tener el sistema de chat funcionando.
+✅ Pre-requisitos
+Antes de empezar, asegúrate de tener instalado:
+
+ Java JDK 11 o superior
+ Gradle 7.0 o superior
+ Node.js 14 o superior
+ ZeroC Ice 3.7.x
+ Git (opcional)
+
+Verificar instalaciones
+bash# Verificar Java
+java -version
+
+# Verificar Gradle
+gradle -version
+
+# Verificar Node.js
+node -version
+npm -version
+
+# Verificar Ice
+slice2java -version
+slice2js -version
+📥 Paso 1: Obtener el Proyecto
+Si tienes el proyecto en Git:
+bashgit clone <url-del-repositorio>
+cd compunet-chat
+Si tienes los archivos localmente, navega al directorio:
+bashcd compunet-chat
+🏗️ Paso 2: Crear la Estructura de Directorios
+Asegúrate de tener la siguiente estructura:
+bashmkdir -p server/src/main/slice
+mkdir -p server/src/main/java/com/compunet/server
+mkdir -p client/src
+📝 Paso 3: Copiar los Archivos
+Copia todos los archivos proporcionados a sus ubicaciones correspondientes:
+Servidor
+
+chat.ice → server/src/main/slice/
+build.gradle → server/
+config.properties → server/
+ChatCore.java → server/src/main/java/com/compunet/server/
+ChatServiceI.java → server/src/main/java/com/compunet/server/
+GroupServiceI.java → server/src/main/java/com/compunet/server/
+ServerMain.java → server/src/main/java/com/compunet/server/
+
+Cliente
+
+package.json → client/
+webpack.config.js → client/
+index.html → client/src/
+styles.css → client/src/
+Todos los archivos .js → client/src/
+
+Raíz
+
+generate-ice-code.sh → raíz del proyecto
+
+🔨 Paso 4: Generar Código Ice
+Opción A: Usar el script (Linux/Mac)
+bash# Dar permisos de ejecución
+chmod +x generate-ice-code.sh
+
+# Ejecutar el script
+./generate-ice-code.sh
+Opción B: Manual
+bash# Generar código Java
+cd server
+mkdir -p build/generated-src
+slice2java --output-dir build/generated-src src/main/slice/chat.ice
+
+# Generar código JavaScript
+cd ../client/src
+mkdir -p generated
+slice2js --output-dir generated ../../server/src/main/slice/chat.ice
+cd ../..
+Importante: Verifica que se hayan creado los archivos:
+
+server/build/generated-src/compunet/*.java
+client/src/generated/compunet.js
+
+🏃 Paso 5: Compilar e Instalar
+Servidor
+bashcd server
+
+# Primera vez: inicializar Gradle wrapper (si no existe)
+gradle wrapper
+
+# Compilar el proyecto
+./gradlew build
+
+# Si todo va bien, verás: BUILD SUCCESSFUL
+Cliente
+bashcd client
+
+# Instalar dependencias
+npm install
+
+# Esto puede tomar unos minutos la primera vez
+▶️ Paso 6: Ejecutar el Sistema
+6.1 Iniciar el Servidor
+Abre una terminal y ejecuta:
+bashcd server
+./gradlew run
+Deberías ver algo como:
+===========================================
+    Servidor de Chat iniciado
+===========================================
+WebSocket endpoint: ws://localhost:10000
+TCP endpoint: tcp://localhost:10001
+Servicios disponibles:
+  - ChatService (identity: 'chat')
+  - GroupService (identity: 'group')
+===========================================
+Presiona Ctrl+C para detener el servidor
+
+Inicializando datos de prueba...
+Usuario registrado: user1 (Alice)
+Usuario registrado: user2 (Bob)
+Usuario registrado: user3 (Charlie)
+Usuario registrado: user4 (Diana)
+...
+⚠️ IMPORTANTE: Deja esta terminal abierta con el servidor ejecutándose.
+6.2 Iniciar el Cliente
+Abre OTRA terminal y ejecuta:
+bashcd client
+npm run serve
+Deberías ver:
+<i> [webpack-dev-server] Project is running at:
+<i> [webpack-dev-server] Loopback: http://localhost:8080/
+...
+webpack 5.x.x compiled successfully
+El navegador debería abrirse automáticamente en http://localhost:8080
+✨ Paso 7: Probar el Sistema
+7.1 Verificar la Conexión
+
+El navegador debería mostrar la interfaz del chat
+En la parte superior izquierda deberías ver "Alice" como usuario actual
+Deberías ver algunos chats de prueba:
+
+Bob (conversación directa)
+Proyecto Universitario (grupo)
+
+
+
+7.2 Enviar un Mensaje
+
+Haz clic en "Bob" en la lista de chats
+Deberías ver mensajes previos en el panel derecho
+Escribe un mensaje en la caja de texto inferior
+Presiona "Enviar" o Enter
+El mensaje debería aparecer en la conversación
+
+7.3 Crear un Grupo
+
+Haz clic en el botón "+ Nuevo Grupo"
+Ingresa un nombre para el grupo
+Selecciona uno o más usuarios
+Haz clic en "Crear Grupo"
+El nuevo grupo debería aparecer en la lista de chats
+
+7.4 Enviar Mensaje a Grupo
+
+Selecciona el grupo que acabas de crear
+Escribe un mensaje
+Envía el mensaje
+Debería aparecer en el chat del grupo
+
+🐛 Solución de Problemas Comunes
+Error: "slice2java: command not found"
+Solución: Ice no está instalado o no está en el PATH.
+En Ubuntu/Debian:
+bashsudo apt-get install zeroc-ice-all-dev zeroc-ice-all-runtime
+En macOS con Homebrew:
+bashbrew install ice
+En Windows: Descarga desde ZeroC Downloads
+
+Error: "Cannot find module 'ice'"
+Solución: Las dependencias del cliente no están instaladas.
+bashcd client
+rm -rf node_modules package-lock.json
+npm install
+
+Error: "Address already in use" en el servidor
+Solución: El puerto 10000 o 10001 está ocupado.
+Ver qué proceso está usando el puerto:
+bash# Linux/Mac
+lsof -i :10000
+
+# Windows
+netstat -ano | findstr :10000
+Cambiar los puertos en server/src/main/java/com/compunet/server/ServerMain.java y en client/src/IceConnectionManager.js
+
+El cliente no se conecta al servidor
+Verificar:
+
+¿El servidor está ejecutándose? (verifica la terminal del servidor)
+¿Hay errores en la consola del navegador? (presiona F12)
+¿Los puertos son correctos?
+
+Solución: Abre la consola del navegador (F12) y busca mensajes de error de Ice.
+
+Los mensajes no aparecen
+Solución:
+
+Verifica que hayas seleccionado un chat (debe estar resaltado)
+Haz clic en el botón "🔄 Actualizar"
+Revisa la consola del navegador para errores
+
+
+Error de compilación en Gradle
+Solución: Asegúrate de haber generado el código Ice primero.
+bashcd server
+mkdir -p build/generated-src
+slice2java --output-dir build/generated-src src/main/slice/chat.ice
+./gradlew clean build
+📊 Verificar que Todo Funciona
+Lista de verificación final:
+
+ El servidor se inicia sin errores
+ El cliente se abre en el navegador
+ Puedes ver la lista de chats
+ Puedes seleccionar un chat y ver mensajes
+ Puedes enviar un mensaje
+ El mensaje aparece en la conversación
+ Puedes crear un nuevo grupo
+ Puedes enviar mensajes al grupo
+
+🎉 ¡Listo!
+Si llegaste hasta aquí y todo funciona, ¡felicitaciones! Tienes un sistema de chat funcional con:
+✅ Mensajes directos 1 a 1
+✅ Grupos con múltiples usuarios
+✅ Interfaz tipo WhatsApp
+✅ Comunicación mediante ZeroC Ice
+📚 Próximos Pasos
+
+Lee el README.md para entender la arquitectura
+Revisa ESTRUCTURA_PROYECTO.md para ver cómo está organizado el código
+Explora el código para entender cómo funciona Ice
+Intenta agregar nuevas funcionalidades
+
+Sistema de Chat CompuNet - Proyecto Universitario
+Sistema de chat tipo WhatsApp desarrollado con ZeroC Ice como middleware entre cliente y servidor.
+🏗️ Arquitectura del Proyecto
+compunet-chat/
+├── server/                  # Servidor Java con Ice
+│   ├── build.gradle
+│   └── src/
+│       └── main/
+│           ├── slice/
+│           │   └── chat.ice
+│           └── java/
+│               └── com/compunet/server/
+│                   ├── ChatCore.java
+│                   ├── ChatServiceI.java
+│                   ├── GroupServiceI.java
+│                   └── ServerMain.java
+│
+└── client/                  # Cliente web con JavaScript
+    ├── package.json
+    ├── webpack.config.js
+    └── src/
+        ├── index.html
+        ├── styles.css
+        ├── index.js
+        ├── IceConnectionManager.js
+        ├── ChatStateManager.js
+        ├── MessageSender.js
+        ├── MessageReceiver.js
+        ├── ChatUIController.js
+        └── generated/       # Código generado por slice2js
+            └── compunet.js
+📋 Requisitos Previos
+Servidor
+
+Java JDK 11 o superior
+Gradle 7.0 o superior
+ZeroC Ice 3.7.x instalado
+slice2java en el PATH
+
+Cliente
+
+Node.js 14 o superior
+npm o yarn
+slice2js en el PATH
+
+🚀 Configuración e Instalación
+1. Generar código Ice
+Primero, genera el código Java desde el archivo .ice:
+bashcd server
+mkdir -p build/generated-src
+slice2java --output-dir build/generated-src src/main/slice/chat.ice
+Luego, genera el código JavaScript:
+bashcd ../client/src
+mkdir -p generated
+slice2js --output-dir generated ../../server/src/main/slice/chat.ice
+2. Configurar el Servidor
+bashcd server
+./gradlew build
+3. Configurar el Cliente
+bashcd client
+npm install
+▶️ Ejecución
+Iniciar el Servidor
+Opción 1: Con Gradle
+bashcd server
+./gradlew run
+Opción 2: Con Java directamente
+bashcd server
+./gradlew build
+java -cp build/libs/server.jar:$ICE_HOME/lib/* com.compunet.server.ServerMain
+El servidor se iniciará en:
+
+WebSocket: ws://localhost:10000
+TCP: tcp://localhost:10001
+
+Iniciar el Cliente
+Opción 1: Servidor de desarrollo (recomendado)
+bashcd client
+npm run serve
+Esto abrirá automáticamente el navegador en http://localhost:8080
+Opción 2: Build de producción
+bashcd client
+npm run build
+Luego sirve la carpeta dist/ con cualquier servidor HTTP.
+🎯 Funcionalidades Implementadas
+✅ Mensajes Directos
+
+Envío de mensajes de texto 1 a 1
+Visualización de historial de mensajes
+Lista de conversaciones directas
+
+✅ Grupos
+
+Creación de grupos con múltiples usuarios
+Envío de mensajes a grupos
+Visualización de mensajes de grupo con nombre del remitente
+Lista de grupos del usuario
+
+✅ Interfaz de Usuario
+
+Lista de chats (directos y grupos) en panel izquierdo
+Área de mensajes en panel derecho
+Diferenciación visual entre mensajes enviados y recibidos
+Indicadores de tipo de chat (directo/grupo)
+Modal para crear nuevos grupos
+Actualización manual de chats
+
+🧪 Datos de Prueba
+El servidor se inicializa con los siguientes datos de prueba:
+Usuarios:
+
+user1 - Alice (usuario activo en el cliente)
+user2 - Bob
+user3 - Charlie
+user4 - Diana
+
+Mensajes de prueba:
+
+Conversación directa entre Alice y Bob
+Grupo "Proyecto Universitario" con Alice, Bob y Charlie
+
+🔧 Estructura del Código
+Servidor (Java)
+
+chat.ice: Define las interfaces Ice (ChatService, GroupService) y estructuras de datos
+ChatCore: Lógica central que maneja usuarios, mensajes y grupos en memoria
+ChatServiceI: Implementación del servicio de mensajes directos
+GroupServiceI: Implementación del servicio de grupos
+ServerMain: Punto de entrada que inicializa Ice y registra los servicios
+
+Cliente (JavaScript)
+
+IceConnectionManager: Gestiona la conexión Ice y expone métodos para llamar al servidor
+ChatStateManager: Mantiene el estado de la aplicación (usuario actual, chats, mensajes)
+MessageSender: Maneja el envío de mensajes (directos y de grupo)
+MessageReceiver: Maneja la recepción y carga de mensajes
+ChatUIController: Controla la interfaz de usuario y eventos
+index.js: Punto de entrada que inicializa la aplicación
+
+📝 Servicios Ice Disponibles
+ChatService
+icevoid registerUser(string userId, string userName);
+User getUser(string userId);
+UserSeq getAllUsers();
+void sendDirectMessage(string fromUserId, string toUserId, string content);
+MessageSeq getDirectChatMessages(string userId, string otherUserId);
+ChatSummarySeq getUserDirectChats(string userId);
+GroupService
+icestring createGroup(string ownerId, string groupName, StringSeq memberIds);
+void addMembersToGroup(string groupId, StringSeq memberIds);
+StringSeq getGroupMembers(string groupId);
+void sendGroupMessage(string fromUserId, string groupId, string content);
+MessageSeq getGroupChatMessages(string groupId);
+ChatSummarySeq getUserGroupChats(string userId);
+🐛 Solución de Problemas
+El cliente no se conecta al servidor
+
+Verifica que el servidor esté ejecutándose
+Revisa que los puertos 10000 y 10001 estén disponibles
+Verifica la consola del navegador para ver errores de Ice
+
+Error al generar código Ice
+
+Asegúrate de que slice2java y slice2js estén en el PATH
+Verifica la versión de Ice (debe ser 3.7.x)
+Revisa que los archivos .ice no tengan errores de sintaxis
+
+Mensajes no se muestran
+
+Abre la consola del navegador (F12) y busca errores
+Verifica que el chat esté seleccionado correctamente
+Intenta actualizar los chats con el botón "🔄 Actualizar"
+
+🔮 Próximas Iteraciones
+Las siguientes características NO están implementadas en esta iteración:
+
+ Persistencia en base de datos
+ Notas de voz
+ Audio y llamadas
+ Callbacks/WebSocket para actualizaciones en tiempo real
+ Notificaciones de mensajes nuevos
+ Estado de lectura de mensajes
+ Múltiples usuarios simultáneos (actualmente solo user1)
+
+Estructura Completa del Proyecto CompuNet Chat
+📁 Estructura de Directorios
+compunet-chat/
+│
+├── README.md                      # Documentación principal
+├── ESTRUCTURA_PROYECTO.md         # Este archivo
+├── generate-ice-code.sh           # Script para generar código Ice
+│
+├── server/                        # SUBPROYECTO SERVIDOR (Java + Ice)
+│   ├── build.gradle               # Configuración de Gradle
+│   ├── gradle/                    # Wrapper de Gradle
+│   │   └── wrapper/
+│   ├── gradlew                    # Script de Gradle (Unix)
+│   ├── gradlew.bat                # Script de Gradle (Windows)
+│   ├── config.properties          # Configuración del servidor Ice
+│   │
+│   ├── src/
+│   │   └── main/
+│   │       ├── slice/             # Definiciones Ice
+│   │       │   └── chat.ice       # Interfaces y estructuras
+│   │       │
+│   │       ├── java/
+│   │       │   └── com/
+│   │       │       └── compunet/
+│   │       │           └── server/
+│   │       │               ├── ChatCore.java        # Lógica central
+│   │       │               ├── ChatServiceI.java    # Servant de ChatService
+│   │       │               ├── GroupServiceI.java   # Servant de GroupService
+│   │       │               └── ServerMain.java      # Punto de entrada
+│   │       │
+│   │       └── resources/
+│   │
+│   └── build/                     # Directorio de compilación (generado)
+│       ├── classes/
+│       ├── libs/
+│       └── generated-src/         # Código Java generado por slice2java
+│           └── compunet/
+│
+└── client/                        # SUBPROYECTO CLIENTE (JavaScript + Ice)
+    ├── package.json               # Configuración de npm
+    ├── webpack.config.js          # Configuración de Webpack
+    │
+    ├── src/                       # Código fuente
+    │   ├── index.html             # HTML principal
+    │   ├── styles.css             # Estilos CSS
+    │   ├── index.js               # Punto de entrada
+    │   │
+    │   ├── IceConnectionManager.js    # Gestión de conexión Ice
+    │   ├── ChatStateManager.js        # Gestión de estado
+    │   ├── MessageSender.js           # Envío de mensajes
+    │   ├── MessageReceiver.js         # Recepción de mensajes
+    │   ├── ChatUIController.js        # Control de UI
+    │   │
+    │   └── generated/                 # Código JS generado por slice2js
+    │       └── compunet.js
+    │
+    ├── dist/                      # Build de producción (generado)
+    │   ├── index.html
+    │   └── bundle.js
+    │
+    └── node_modules/              # Dependencias npm (generado)
+📄 Descripción de Archivos Clave
+Raíz del Proyecto
+
+README.md: Documentación principal con instrucciones de instalación y uso
+generate-ice-code.sh: Script automatizado para generar código Ice
+ESTRUCTURA_PROYECTO.md: Este documento
+
+Servidor (Java)
+Configuración
+
+build.gradle: Define dependencias, tareas de Gradle y generación de código Ice
+config.properties: Configuración del servidor Ice (endpoints, threads, etc.)
+
+Código Fuente
+
+chat.ice: Define las interfaces Ice (ChatService, GroupService) y estructuras de datos (User, Message, ChatSummary)
+ChatCore.java: Lógica central del servidor que maneja usuarios, mensajes directos y grupos en memoria
+ChatServiceI.java: Implementación del servant para ChatService
+GroupServiceI.java: Implementación del servant para GroupService
+ServerMain.java: Inicializa Ice, registra los servants y arranca el servidor
+
+Cliente (JavaScript)
+Configuración
+
+package.json: Define dependencias npm (ice, webpack, etc.) y scripts de build
+webpack.config.js: Configuración de Webpack para empaquetar el código
+
+Código Fuente
+
+index.html: Estructura HTML de la aplicación (lista de chats, área de mensajes, modal)
+styles.css: Estilos CSS tipo WhatsApp
+index.js: Punto de entrada que inicializa la aplicación
+
+Módulos JavaScript
+
+IceConnectionManager.js:
+
+Inicializa la conexión Ice
+Crea proxies para ChatService y GroupService
+Expone métodos para llamar al servidor
+
+
+ChatStateManager.js:
+
+Mantiene el estado de la aplicación
+Gestiona usuario actual, lista de chats, chat activo y mensajes
+Proporciona utilidades para formatear datos
+
+
+MessageSender.js:
+
+Maneja el envío de mensajes
+Decide si enviar a chat directo o grupo
+Valida contenido antes de enviar
+
+
+MessageReceiver.js:
+
+Carga mensajes de un chat específico
+Actualiza la lista de chats
+Sincroniza datos con el servidor
+
+
+ChatUIController.js:
+
+Controla toda la interfaz de usuario
+Renderiza lista de chats y mensajes
+Maneja eventos (clicks, envío de mensajes, etc.)
+Gestiona el modal de creación de grupos
+
+
+
+🔄 Flujo de Datos
+Envío de Mensaje
+Usuario escribe mensaje
+    ↓
+ChatUIController captura el evento
+    ↓
+MessageSender.sendMessage()
+    ↓
+IceConnectionManager determina tipo (directo/grupo)
+    ↓
+Llama a ChatService o GroupService via Ice
+    ↓
+Servidor (ChatCore) procesa y almacena
+    ↓
+Cliente refresca mensajes
+    ↓
+ChatUIController re-renderiza
+Carga de Chat
+Usuario selecciona un chat
+    ↓
+ChatUIController.handleChatClick()
+    ↓
+ChatStateManager.setActiveChat()
+    ↓
+MessageReceiver.loadChatMessages()
+    ↓
+IceConnectionManager llama al servidor
+    ↓
+Servidor devuelve mensajes
+    ↓
+ChatStateManager almacena mensajes
+    ↓
+ChatUIController renderiza mensajes
+🛠️ Archivos Generados
+Los siguientes archivos se generan automáticamente y NO deben editarse manualmente:
+Servidor
+
+server/build/generated-src/compunet/*.java - Clases Java generadas por slice2java
+
+Cliente
+
+client/src/generated/compunet.js - Código JavaScript generado por slice2js
+client/dist/* - Build de producción generado por Webpack
+client/node_modules/* - Dependencias npm
+
+📦 Dependencias
+Servidor (Java)
+gradle- com.zeroc:ice:3.7.10
+- com.zeroc:glacier2:3.7.10
+Cliente (JavaScript)
+json- ice: 3.7.10
+- webpack: 5.88.0
+- webpack-cli: 5.1.4
+- webpack-dev-server: 4.15.1
+- html-webpack-plugin: 5.5.3
+🚀 Orden de Ejecución
+
+Generar código Ice: ./generate-ice-code.sh
+Compilar servidor: cd server && ./gradlew build
+Instalar dependencias cliente: cd client && npm install
+Iniciar servidor: cd server && ./gradlew run
+Iniciar cliente: cd client && npm run serve
+
+📝 Notas Importantes
+
+El código generado por Ice debe crearse antes de compilar
+El servidor debe estar ejecutándose antes de iniciar el cliente
+Los puertos 10000 (WebSocket) y 10001 (TCP) deben estar libres
+El cliente se conecta por defecto a localhost:10000
+El almacenamiento es en memoria (se pierde al reiniciar el servidor)
+
+chat.ice
+module compunet {
+    // Estructuras de datos básicas
+    struct User {
+        string id;
+        string name;
+    };
+
+    struct Message {
+        string id;
+        string senderId;
+        string senderName;
+        string content;
+        long timestamp;
+        string chatId; // ID del chat (userId para directos, groupId para grupos)
+        bool isGroupMessage;
+    };
+
+    struct ChatSummary {
+        string chatId;
+        string chatName;
+        string lastMessageContent;
+        long lastMessageTimestamp;
+        bool isGroup;
+    };
+
+    // Secuencias
+    sequence<string> StringSeq;
+    sequence<Message> MessageSeq;
+    sequence<ChatSummary> ChatSummarySeq;
+    sequence<User> UserSeq;
+
+    // Interfaz para gestión de mensajes directos
+    interface ChatService {
+        // Registro básico de usuarios
+        void registerUser(string userId, string userName);
+        User getUser(string userId);
+        UserSeq getAllUsers();
+        
+        // Mensajes directos
+        void sendDirectMessage(string fromUserId, string toUserId, string content);
+        MessageSeq getDirectChatMessages(string userId, string otherUserId);
+        ChatSummarySeq getUserDirectChats(string userId);
+    };
+
+    // Interfaz para gestión de grupos
+    interface GroupService {
+        // Gestión de grupos
+        string createGroup(string ownerId, string groupName, StringSeq memberIds);
+        void addMembersToGroup(string groupId, StringSeq memberIds);
+        StringSeq getGroupMembers(string groupId);
+        
+        // Mensajes de grupo
+        void sendGroupMessage(string fromUserId, string groupId, string content);
+        MessageSeq getGroupChatMessages(string groupId);
+        ChatSummarySeq getUserGroupChats(string userId);
+    };
+};
+
+server/build.gradle
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.compunet'
+version = '1.0.0'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://repo.zeroc.com/releases"
+    }
+}
+
+dependencies {
+    implementation 'com.zeroc:ice:3.7.10'
+    implementation 'com.zeroc:glacier2:3.7.10'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+def generatedSourcesDir = file("${buildDir}/generated-src")
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', generatedSourcesDir]
+        }
+    }
+}
+
+// Tarea para generar código Java desde archivos .ice
+task generateIceCode(type: Exec) {
+    def iceFile = file('src/main/slice/chat.ice')
+    def outputDir = generatedSourcesDir
+    
+    inputs.file(iceFile)
+    outputs.dir(outputDir)
+    
+    doFirst {
+        outputDir.mkdirs()
+    }
+    
+    commandLine 'slice2java', '--output-dir', outputDir, iceFile
+}
+
+// Asegurar que el código Ice se genere antes de compilar
+compileJava.dependsOn generateIceCode
+
+application {
+    mainClass = 'com.compunet.server.ServerMain'
+}
+
+// Configuración para ejecutar el servidor
+run {
+    standardInput = System.in
+}
+
+task runServer(type: JavaExec) {
+    group = 'application'
+    description = 'Runs the Chat Server'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.compunet.server.ServerMain'
+    standardInput = System.in
+}
+
+Chat.core.java
+package com.compunet.server;
+
+import compunet.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+public class ChatCore {
+    // Almacenamiento en memoria
+    private final Map<String, User> users = new ConcurrentHashMap<>();
+    private final Map<String, Group> groups = new ConcurrentHashMap<>();
+    private final Map<String, List<Message>> directMessages = new ConcurrentHashMap<>();
+    private final Map<String, List<Message>> groupMessages = new ConcurrentHashMap<>();
+    
+    private final AtomicLong messageIdCounter = new AtomicLong(0);
+    private final AtomicLong groupIdCounter = new AtomicLong(0);
+    
+    // Clase interna para representar un grupo
+    private static class Group {
+        String id;
+        String name;
+        String ownerId;
+        Set<String> memberIds;
+        
+        Group(String id, String name, String ownerId, Set<String> memberIds) {
+            this.id = id;
+            this.name = name;
+            this.ownerId = ownerId;
+            this.memberIds = memberIds;
+        }
+    }
+    
+    // === Gestión de usuarios ===
+    
+    public void registerUser(String userId, String userName) {
+        if (!users.containsKey(userId)) {
+            User user = new User(userId, userName);
+            users.put(userId, user);
+            System.out.println("Usuario registrado: " + userId + " (" + userName + ")");
+        }
+    }
+    
+    public User getUser(String userId) {
+        return users.get(userId);
+    }
+    
+    public List<User> getAllUsers() {
+        return new ArrayList<>(users.values());
+    }
+    
+    // === Mensajes directos ===
+    
+    public void sendDirectMessage(String fromUserId, String toUserId, String content) {
+        User sender = users.get(fromUserId);
+        if (sender == null) {
+            throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
+        }
+        
+        User receiver = users.get(toUserId);
+        if (receiver == null) {
+            throw new RuntimeException("Usuario receptor no encontrado: " + toUserId);
+        }
+        
+        String chatKey = getChatKey(fromUserId, toUserId);
+        Message message = new Message(
+            String.valueOf(messageIdCounter.incrementAndGet()),
+            fromUserId,
+            sender.name,
+            content,
+            System.currentTimeMillis(),
+            toUserId,
+            false
+        );
+        
+        directMessages.computeIfAbsent(chatKey, k -> new ArrayList<>()).add(message);
+        System.out.println("Mensaje directo enviado de " + fromUserId + " a " + toUserId);
+    }
+    
+    public List<Message> getDirectChatMessages(String userId, String otherUserId) {
+        String chatKey = getChatKey(userId, otherUserId);
+        return directMessages.getOrDefault(chatKey, new ArrayList<>());
+    }
+    
+    public List<ChatSummary> getUserDirectChats(String userId) {
+        List<ChatSummary> summaries = new ArrayList<>();
+        
+        for (Map.Entry<String, List<Message>> entry : directMessages.entrySet()) {
+            String chatKey = entry.getKey();
+            if (chatKey.contains(userId)) {
+                List<Message> messages = entry.getValue();
+                if (!messages.isEmpty()) {
+                    Message lastMessage = messages.get(messages.size() - 1);
+                    String otherUserId = getOtherUserId(chatKey, userId);
+                    User otherUser = users.get(otherUserId);
+                    
+                    if (otherUser != null) {
+                        ChatSummary summary = new ChatSummary(
+                            otherUserId,
+                            otherUser.name,
+                            lastMessage.content,
+                            lastMessage.timestamp,
+                            false
+                        );
+                        summaries.add(summary);
+                    }
+                }
+            }
+        }
+        
+        summaries.sort((a, b) -> Long.compare(b.lastMessageTimestamp, a.lastMessageTimestamp));
+        return summaries;
+    }
+    
+    private String getChatKey(String userId1, String userId2) {
+        // Clave consistente independiente del orden
+        return userId1.compareTo(userId2) < 0 
+            ? userId1 + ":" + userId2 
+            : userId2 + ":" + userId1;
+    }
+    
+    private String getOtherUserId(String chatKey, String userId) {
+        String[] parts = chatKey.split(":");
+        return parts[0].equals(userId) ? parts[1] : parts[0];
+    }
+    
+    // === Gestión de grupos ===
+    
+    public String createGroup(String ownerId, String groupName, String[] memberIds) {
+        User owner = users.get(ownerId);
+        if (owner == null) {
+            throw new RuntimeException("Usuario propietario no encontrado: " + ownerId);
+        }
+        
+        Set<String> members = new HashSet<>(Arrays.asList(memberIds));
+        members.add(ownerId); // El propietario siempre es miembro
+        
+        String groupId = "group_" + groupIdCounter.incrementAndGet();
+        Group group = new Group(groupId, groupName, ownerId, members);
+        groups.put(groupId, group);
+        
+        System.out.println("Grupo creado: " + groupId + " (" + groupName + ") con " + members.size() + " miembros");
+        return groupId;
+    }
+    
+    public void addMembersToGroup(String groupId, String[] memberIds) {
+        Group group = groups.get(groupId);
+        if (group == null) {
+            throw new RuntimeException("Grupo no encontrado: " + groupId);
+        }
+        
+        group.memberIds.addAll(Arrays.asList(memberIds));
+        System.out.println("Miembros agregados al grupo " + groupId);
+    }
+    
+    public String[] getGroupMembers(String groupId) {
+        Group group = groups.get(groupId);
+        if (group == null) {
+            throw new RuntimeException("Grupo no encontrado: " + groupId);
+        }
+        
+        return group.memberIds.toArray(new String[0]);
+    }
+    
+    // === Mensajes de grupo ===
+    
+    public void sendGroupMessage(String fromUserId, String groupId, String content) {
+        User sender = users.get(fromUserId);
+        if (sender == null) {
+            throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
+        }
+        
+        Group group = groups.get(groupId);
+        if (group == null) {
+            throw new RuntimeException("Grupo no encontrado: " + groupId);
+        }
+        
+        if (!group.memberIds.contains(fromUserId)) {
+            throw new RuntimeException("Usuario no es miembro del grupo: " + fromUserId);
+        }
+        
+        Message message = new Message(
+            String.valueOf(messageIdCounter.incrementAndGet()),
+            fromUserId,
+            sender.name,
+            content,
+            System.currentTimeMillis(),
+            groupId,
+            true
+        );
+        
+        groupMessages.computeIfAbsent(groupId, k -> new ArrayList<>()).add(message);
+        System.out.println("Mensaje enviado al grupo " + groupId + " por " + fromUserId);
+    }
+    
+    public List<Message> getGroupChatMessages(String groupId) {
+        return groupMessages.getOrDefault(groupId, new ArrayList<>());
+    }
+    
+    public List<ChatSummary> getUserGroupChats(String userId) {
+        List<ChatSummary> summaries = new ArrayList<>();
+        
+        for (Group group : groups.values()) {
+            if (group.memberIds.contains(userId)) {
+                List<Message> messages = groupMessages.getOrDefault(group.id, new ArrayList<>());
+                
+                String lastMessageContent = messages.isEmpty() 
+                    ? "Grupo creado" 
+                    : messages.get(messages.size() - 1).content;
+                long lastMessageTimestamp = messages.isEmpty() 
+                    ? System.currentTimeMillis() 
+                    : messages.get(messages.size() - 1).timestamp;
+                
+                ChatSummary summary = new ChatSummary(
+                    group.id,
+                    group.name,
+                    lastMessageContent,
+                    lastMessageTimestamp,
+                    true
+                );
+                summaries.add(summary);
+            }
+        }
+        
+        summaries.sort((a, b) -> Long.compare(b.lastMessageTimestamp, a.lastMessageTimestamp));
+        return summaries;
+    }
+}
+
+ChatServiceI.java
+package com.compunet.server;
+
+import compunet.*;
+import com.zeroc.Ice.Current;
+import java.util.List;
+
+public class ChatServiceI implements ChatService {
+    private final ChatCore chatCore;
+    
+    public ChatServiceI(ChatCore chatCore) {
+        this.chatCore = chatCore;
+    }
+    
+    @Override
+    public void registerUser(String userId, String userName, Current current) {
+        try {
+            chatCore.registerUser(userId, userName);
+        } catch (Exception e) {
+            System.err.println("Error al registrar usuario: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public User getUser(String userId, Current current) {
+        try {
+            return chatCore.getUser(userId);
+        } catch (Exception e) {
+            System.err.println("Error al obtener usuario: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public User[] getAllUsers(Current current) {
+        try {
+            List<User> users = chatCore.getAllUsers();
+            return users.toArray(new User[0]);
+        } catch (Exception e) {
+            System.err.println("Error al obtener usuarios: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public void sendDirectMessage(String fromUserId, String toUserId, String content, Current current) {
+        try {
+            chatCore.sendDirectMessage(fromUserId, toUserId, content);
+        } catch (Exception e) {
+            System.err.println("Error al enviar mensaje directo: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public Message[] getDirectChatMessages(String userId, String otherUserId, Current current) {
+        try {
+            List<Message> messages = chatCore.getDirectChatMessages(userId, otherUserId);
+            return messages.toArray(new Message[0]);
+        } catch (Exception e) {
+            System.err.println("Error al obtener mensajes directos: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public ChatSummary[] getUserDirectChats(String userId, Current current) {
+        try {
+            List<ChatSummary> chats = chatCore.getUserDirectChats(userId);
+            return chats.toArray(new ChatSummary[0]);
+        } catch (Exception e) {
+            System.err.println("Error al obtener chats directos: " + e.getMessage());
+            throw e;
+        }
+    }
+}
+
+GroupServiceI.java
+package com.compunet.server;
+
+import compunet.*;
+import com.zeroc.Ice.Current;
+import java.util.List;
+
+public class GroupServiceI implements GroupService {
+    private final ChatCore chatCore;
+    
+    public GroupServiceI(ChatCore chatCore) {
+        this.chatCore = chatCore;
+    }
+    
+    @Override
+    public String createGroup(String ownerId, String groupName, String[] memberIds, Current current) {
+        try {
+            return chatCore.createGroup(ownerId, groupName, memberIds);
+        } catch (Exception e) {
+            System.err.println("Error al crear grupo: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public void addMembersToGroup(String groupId, String[] memberIds, Current current) {
+        try {
+            chatCore.addMembersToGroup(groupId, memberIds);
+        } catch (Exception e) {
+            System.err.println("Error al agregar miembros al grupo: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public String[] getGroupMembers(String groupId, Current current) {
+        try {
+            return chatCore.getGroupMembers(groupId);
+        } catch (Exception e) {
+            System.err.println("Error al obtener miembros del grupo: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public void sendGroupMessage(String fromUserId, String groupId, String content, Current current) {
+        try {
+            chatCore.sendGroupMessage(fromUserId, groupId, content);
+        } catch (Exception e) {
+            System.err.println("Error al enviar mensaje al grupo: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public Message[] getGroupChatMessages(String groupId, Current current) {
+        try {
+            List<Message> messages = chatCore.getGroupChatMessages(groupId);
+            return messages.toArray(new Message[0]);
+        } catch (Exception e) {
+            System.err.println("Error al obtener mensajes del grupo: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    @Override
+    public ChatSummary[] getUserGroupChats(String userId, Current current) {
+        try {
+            List<ChatSummary> chats = chatCore.getUserGroupChats(userId);
+            return chats.toArray(new ChatSummary[0]);
+        } catch (Exception e) {
+            System.err.println("Error al obtener grupos del usuario: " + e.getMessage());
+            throw e;
+        }
+    }
+}
+
+ServerMain.java
+package com.compunet.server;
+
+import com.zeroc.Ice.*;
+
+public class ServerMain {
+    public static void main(String[] args) {
+        int status = 0;
+        Communicator communicator = null;
+        
+        try {
+            // Inicializar Ice
+            communicator = Util.initialize(args);
+            
+            // Crear el adapter
+            ObjectAdapter adapter = communicator.createObjectAdapterWithEndpoints(
+                "ChatAdapter", 
+                "ws -h localhost -p 10000:tcp -h localhost -p 10001"
+            );
+            
+            // Crear la lógica central compartida
+            ChatCore chatCore = new ChatCore();
+            
+            // Inicializar usuarios de prueba
+            initializeTestData(chatCore);
+            
+            // Crear e instalar los servants
+            ChatServiceI chatService = new ChatServiceI(chatCore);
+            GroupServiceI groupService = new GroupServiceI(chatCore);
+            
+            adapter.add(chatService, Util.stringToIdentity("chat"));
+            adapter.add(groupService, Util.stringToIdentity("group"));
+            
+            // Activar el adapter
+            adapter.activate();
+            
+            System.out.println("===========================================");
+            System.out.println("    Servidor de Chat iniciado");
+            System.out.println("===========================================");
+            System.out.println("WebSocket endpoint: ws://localhost:10000");
+            System.out.println("TCP endpoint: tcp://localhost:10001");
+            System.out.println("Servicios disponibles:");
+            System.out.println("  - ChatService (identity: 'chat')");
+            System.out.println("  - GroupService (identity: 'group')");
+            System.out.println("===========================================");
+            System.out.println("Presiona Ctrl+C para detener el servidor");
+            System.out.println();
+            
+            // Esperar hasta que se apague el servidor
+            communicator.waitForShutdown();
+            
+        } catch (Exception e) {
+            System.err.println("Error en el servidor: " + e.getMessage());
+            e.printStackTrace();
+            status = 1;
+        } finally {
+            if (communicator != null) {
+                try {
+                    communicator.destroy();
+                } catch (Exception e) {
+                    System.err.println("Error al destruir el comunicador: " + e.getMessage());
+                    status = 1;
+                }
+            }
+        }
+        
+        System.exit(status);
+    }
+    
+    private static void initializeTestData(ChatCore chatCore) {
+        System.out.println("Inicializando datos de prueba...");
+        
+        // Crear usuarios de prueba
+        chatCore.registerUser("user1", "Alice");
+        chatCore.registerUser("user2", "Bob");
+        chatCore.registerUser("user3", "Charlie");
+        chatCore.registerUser("user4", "Diana");
+        
+        // Crear un grupo de prueba
+        String groupId = chatCore.createGroup("user1", "Proyecto Universitario", 
+            new String[]{"user2", "user3"});
+        
+        // Enviar algunos mensajes de prueba
+        chatCore.sendDirectMessage("user2", "user1", "Hola Alice, ¿cómo estás?");
+        chatCore.sendDirectMessage("user1", "user2", "¡Hola Bob! Todo bien, ¿y tú?");
+        
+        chatCore.sendGroupMessage("user1", groupId, "¡Bienvenidos al grupo del proyecto!");
+        chatCore.sendGroupMessage("user2", groupId, "Gracias Alice, listo para trabajar.");
+        
+        System.out.println("Datos de prueba inicializados correctamente.");
+        System.out.println();
+    }
+}
+
+client/package.json
+{
+  "name": "compunet-chat-client",
+  "version": "1.0.0",
+  "description": "Cliente web para sistema de chat con ZeroC Ice",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "serve": "webpack serve --mode development --open"
+  },
+  "keywords": ["chat", "ice", "zeroc"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1",
+    "html-webpack-plugin": "^5.5.3",
+    "css-loader": "^6.8.1",
+    "style-loader": "^3.3.3"
+  },
+  "dependencies": {
+    "ice": "^3.7.10"
+  }
+}
+
+client/webpack.config.js
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+module.exports = {
+  entry: './src/index.js',
+  output: {
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist'),
+    clean: true
+  },
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader']
+      }
+    ]
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './src/index.html',
+      filename: 'index.html'
+    })
+  ],
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'dist')
+    },
+    compress: true,
+    port: 8080,
+    hot: true
+  },
+  resolve: {
+    extensions: ['.js'],
+    fallback: {
+      "buffer": false,
+      "crypto": false,
+      "stream": false,
+      "util": false,
+      "path": false,
+      "fs": false
+    }
+  },
+  mode: 'development'
+};
+
+
+client/src/index.html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompuNet Chat</title>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar con lista de chats -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Chats</h2>
+                <div class="user-info">
+                    <span id="current-user-name">Usuario</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-actions">
+                <button id="btn-new-group" class="btn-action">+ Nuevo Grupo</button>
+                <button id="btn-refresh-chats" class="btn-action">🔄 Actualizar</button>
+            </div>
+            
+            <div class="chat-list" id="chat-list">
+                <!-- La lista de chats se renderizará dinámicamente aquí -->
+            </div>
+        </div>
+        
+        <!-- Área principal de chat -->
+        <div class="chat-area">
+            <div class="chat-header" id="chat-header">
+                <h3 id="chat-name">Selecciona un chat</h3>
+                <span id="chat-type" class="chat-type-badge"></span>
+            </div>
+            
+            <div class="messages-container" id="messages-container">
+                <div class="empty-state">
+                    <p>Selecciona un chat para ver los mensajes</p>
+                </div>
+            </div>
+            
+            <div class="message-input-container">
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    placeholder="Escribe un mensaje..." 
+                    disabled
+                />
+                <button id="btn-send-message" class="btn-send" disabled>Enviar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para crear grupos -->
+    <div id="modal-new-group" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Crear Nuevo Grupo</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="group-name">Nombre del grupo:</label>
+                    <input type="text" id="group-name" placeholder="Ej: Proyecto Universitario" />
+                </div>
+                <div class="form-group">
+                    <label>Selecciona miembros:</label>
+                    <div id="users-list" class="users-list">
+                        <!-- Lista de usuarios disponibles -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-group" class="btn-secondary">Cancelar</button>
+                <button id="btn-create-group" class="btn-primary">Crear Grupo</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Conectando al servidor...</p>
+    </div>
+</body>
+</html>
+
+client/src/styles.css
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f0f2f5;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    max-width: 1600px;
+    margin: 0 auto;
+    background-color: white;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 350px;
+    background-color: #fff;
+    border-right: 1px solid #e9edef;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 20px;
+    background-color: #008069;
+    color: white;
+}
+
+.sidebar-header h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.user-info {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.sidebar-actions {
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #e9edef;
+}
+
+.btn-action {
+    flex: 1;
+    padding: 8px 12px;
+    background-color: #008069;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s;
+}
+
+.btn-action:hover {
+    background-color: #00695c;
+}
+
+.chat-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9edef;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.chat-item:hover {
+    background-color: #f5f6f6;
+}
+
+.chat-item.active {
+    background-color: #e9edef;
+}
+
+.chat-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.chat-item-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #111b21;
+}
+
+.chat-item-time {
+    font-size: 12px;
+    color: #667781;
+}
+
+.chat-item-preview {
+    font-size: 14px;
+    color: #667781;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-item-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background-color: #008069;
+    color: white;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-left: 8px;
+}
+
+/* Chat Area */
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #efeae2;
+}
+
+.chat-header {
+    padding: 15px 20px;
+    background-color: #f0f2f5;
+    border-bottom: 1px solid #d1d7db;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.chat-header h3 {
+    font-size: 18px;
+    color: #111b21;
+}
+
+.chat-type-badge {
+    padding: 4px 10px;
+    background-color: #008069;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgYGD4z0AEYBxVOKpwUBUCAEfGAgHWqMl7AAAAAElFTkSuQmCC');
+}
+
+.empty-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #667781;
+    font-size: 16px;
+}
+
+.message {
+    margin-bottom: 12px;
+    display: flex;
+}
+
+.message.sent {
+    justify-content: flex-end;
+}
+
+.message.received {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 65%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.message.sent .message-bubble {
+    background-color: #d9fdd3;
+}
+
+.message.received .message-bubble {
+    background-color: #ffffff;
+}
+
+.message-sender {
+    font-weight: 600;
+    color: #008069;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.message-content {
+    color: #111b21;
+    font-size: 14px;
+    word-wrap: break-word;
+    margin-bottom: 4px;
+}
+
+.message-time {
+    font-size: 11px;
+    color: #667781;
+    text-align: right;
+}
+
+.message-input-container {
+    padding: 10px 20px;
+    background-color: #f0f2f5;
+    display: flex;
+    gap: 10px;
+}
+
+#message-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+}
+
+#message-input:disabled {
+    background-color: #e9edef;
+    cursor: not-allowed;
+}
+
+.btn-send {
+    padding: 12px 24px;
+    background-color: #008069;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.btn-send:hover:not(:disabled) {
+    background-color: #00695c;
+}
+
+.btn-send:disabled {
+    background-color: #d1d7db;
+    cursor: not-allowed;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 12px;
+    width: 500px;
+    max-width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #e9edef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    color: #111b21;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #667781;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #111b21;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d7db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.users-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e9edef;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.user-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.user-checkbox:hover {
+    background-color: #f5f6f6;
+}
+
+.user-checkbox input {
+    margin-right: 10px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e9edef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background-color: #008069;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #00695c;
+}
+
+.btn-secondary {
+    background-color: #e9edef;
+    color: #111b21;
+}
+
+.btn-secondary:hover {
+    background-color: #d1d7db;
+}
+
+/* Loading */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #008069;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-overlay p {
+    color: white;
+    margin-top: 20px;
+    font-size: 16px;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+client/src/IceConnectionManager.js
+const Ice = require('ice').Ice;
+
+// Importar las clases generadas desde los archivos .ice
+// Nota: Estos archivos deben ser generados con slice2js y copiados al proyecto cliente
+const compunet = require('./generated/compunet');
+
+class IceConnectionManager {
+    constructor() {
+        this.communicator = null;
+        this.chatServicePrx = null;
+        this.groupServicePrx = null;
+        this.isConnected = false;
+    }
+
+    async initialize() {
+        try {
+            console.log('Inicializando conexión Ice...');
+            
+            // Inicializar el comunicador Ice
+            this.communicator = Ice.initialize();
+            
+            // Crear proxies para los servicios
+            const chatBase = this.communicator.stringToProxy("chat:ws -h localhost -p 10000");
+            this.chatServicePrx = await compunet.ChatServicePrx.checkedCast(chatBase);
+            
+            const groupBase = this.communicator.stringToProxy("group:ws -h localhost -p 10000");
+            this.groupServicePrx = await compunet.GroupServicePrx.checkedCast(groupBase);
+            
+            if (!this.chatServicePrx || !this.groupServicePrx) {
+                throw new Error("No se pudieron crear los proxies de los servicios");
+            }
+            
+            this.isConnected = true;
+            console.log('Conexión Ice establecida correctamente');
+            
+            return true;
+        } catch (error) {
+            console.error('Error al inicializar Ice:', error);
+            this.isConnected = false;
+            throw error;
+        }
+    }
+
+    async shutdown() {
+        if (this.communicator) {
+            try {
+                await this.communicator.destroy();
+                this.isConnected = false;
+                console.log('Conexión Ice cerrada');
+            } catch (error) {
+                console.error('Error al cerrar la conexión Ice:', error);
+            }
+        }
+    }
+
+    // === Métodos de ChatService ===
+
+    async registerUser(userId, userName) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            await this.chatServicePrx.registerUser(userId, userName);
+            console.log(`Usuario registrado: ${userId}`);
+        } catch (error) {
+            console.error('Error al registrar usuario:', error);
+            throw error;
+        }
+    }
+
+    async getUser(userId) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            return await this.chatServicePrx.getUser(userId);
+        } catch (error) {
+            console.error('Error al obtener usuario:', error);
+            throw error;
+        }
+    }
+
+    async getAllUsers() {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            return await this.chatServicePrx.getAllUsers();
+        } catch (error) {
+            console.error('Error al obtener usuarios:', error);
+            throw error;
+        }
+    }
+
+    async sendDirectMessage(fromUserId, toUserId, content) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            await this.chatServicePrx.sendDirectMessage(fromUserId, toUserId, content);
+            console.log(`Mensaje enviado de ${fromUserId} a ${toUserId}`);
+        } catch (error) {
+            console.error('Error al enviar mensaje directo:', error);
+            throw error;
+        }
+    }
+
+    async getDirectChatMessages(userId, otherUserId) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            return await this.chatServicePrx.getDirectChatMessages(userId, otherUserId);
+        } catch (error) {
+            console.error('Error al obtener mensajes directos:', error);
+            throw error;
+        }
+    }
+
+    async getUserDirectChats(userId) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            return await this.chatServicePrx.getUserDirectChats(userId);
+        } catch (error) {
+            console.error('Error al obtener chats directos:', error);
+            throw error;
+        }
+    }
+
+    // === Métodos de GroupService ===
+
+    async createGroup(ownerId, groupName, memberIds) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            const groupId = await this.groupServicePrx.createGroup(ownerId, groupName, memberIds);
+            console.log(`Grupo creado: ${groupId}`);
+            return groupId;
+        } catch (error) {
+            console.error('Error al crear grupo:', error);
+            throw error;
+        }
+    }
+
+    async addMembersToGroup(groupId, memberIds) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            await this.groupServicePrx.addMembersToGroup(groupId, memberIds);
+            console.log(`Miembros agregados al grupo ${groupId}`);
+        } catch (error) {
+            console.error('Error al agregar miembros al grupo:', error);
+            throw error;
+        }
+    }
+
+    async getGroupMembers(groupId) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            return await this.groupServicePrx.getGroupMembers(groupId);
+        } catch (error) {
+            console.error('Error al obtener miembros del grupo:', error);
+            throw error;
+        }
+    }
+
+    async sendGroupMessage(fromUserId, groupId, content) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            await this.groupServicePrx.sendGroupMessage(fromUserId, groupId, content);
+            console.log(`Mensaje enviado al grupo ${groupId}`);
+        } catch (error) {
+            console.error('Error al enviar mensaje al grupo:', error);
+            throw error;
+        }
+    }
+
+    async getGroupChatMessages(groupId) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            return await this.groupServicePrx.getGroupChatMessages(groupId);
+        } catch (error) {
+            console.error('Error al obtener mensajes del grupo:', error);
+            throw error;
+        }
+    }
+
+    async getUserGroupChats(userId) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            return await this.groupServicePrx.getUserGroupChats(userId);
+        } catch (error) {
+            console.error('Error al obtener grupos del usuario:', error);
+            throw error;
+        }
+    }
+}
+
+// Exportar una instancia singleton
+const iceManager = new IceConnectionManager();
+module.exports = iceManager;
+
+client/src/ChatStateManager.js
+class ChatStateManager {
+    constructor() {
+        this.currentUserId = 'user1'; // Usuario fijo para esta iteración
+        this.currentUserName = 'Alice';
+        this.chats = []; // Array de ChatSummary (directos + grupos)
+        this.activeChat = null; // {id, name, isGroup}
+        this.activeMessages = []; // Array de Messages del chat activo
+        this.allUsers = []; // Todos los usuarios disponibles
+    }
+
+    // === Gestión de usuario actual ===
+
+    setCurrentUser(userId, userName) {
+        this.currentUserId = userId;
+        this.currentUserName = userName;
+    }
+
+    getCurrentUserId() {
+        return this.currentUserId;
+    }
+
+    getCurrentUserName() {
+        return this.currentUserName;
+    }
+
+    // === Gestión de chats ===
+
+    setChats(chats) {
+        // Combinar chats directos y de grupo, ordenados por timestamp
+        this.chats = chats.sort((a, b) => 
+            b.lastMessageTimestamp - a.lastMessageTimestamp
+        );
+    }
+
+    getChats() {
+        return this.chats;
+    }
+
+    addChat(chatSummary) {
+        // Verificar si el chat ya existe
+        const existingIndex = this.chats.findIndex(c => c.chatId === chatSummary.chatId);
+        
+        if (existingIndex >= 0) {
+            // Actualizar el chat existente
+            this.chats[existingIndex] = chatSummary;
+        } else {
+            // Agregar nuevo chat
+            this.chats.push(chatSummary);
+        }
+        
+        // Reordenar por timestamp
+        this.chats.sort((a, b) => 
+            b.lastMessageTimestamp - a.lastMessageTimestamp
+        );
+    }
+
+    // === Gestión de chat activo ===
+
+    setActiveChat(chatId, chatName, isGroup) {
+        this.activeChat = {
+            id: chatId,
+            name: chatName,
+            isGroup: isGroup
+        };
+        this.activeMessages = []; // Limpiar mensajes al cambiar de chat
+    }
+
+    getActiveChat() {
+        return this.activeChat;
+    }
+
+    clearActiveChat() {
+        this.activeChat = null;
+        this.activeMessages = [];
+    }
+
+    // === Gestión de mensajes ===
+
+    setActiveMessages(messages) {
+        this.activeMessages = messages;
+    }
+
+    getActiveMessages() {
+        return this.activeMessages;
+    }
+
+    addMessage(message) {
+        this.activeMessages.push(message);
+        
+        // Actualizar el resumen del chat en la lista
+        if (this.activeChat) {
+            const chatIndex = this.chats.findIndex(c => c.chatId === this.activeChat.id);
+            if (chatIndex >= 0) {
+                this.chats[chatIndex].lastMessageContent = message.content;
+                this.chats[chatIndex].lastMessageTimestamp = message.timestamp;
+                
+                // Reordenar
+                this.chats.sort((a, b) => 
+                    b.lastMessageTimestamp - a.lastMessageTimestamp
+                );
+            }
+        }
+    }
+
+    // === Gestión de usuarios ===
+
+    setAllUsers(users) {
+        this.allUsers = users;
+    }
+
+    getAllUsers() {
+        return this.allUsers;
+    }
+
+    getUsersExceptCurrent() {
+        return this.allUsers.filter(u => u.id !== this.currentUserId);
+    }
+
+    // === Utilidades ===
+
+    isChatActive(chatId) {
+        return this.activeChat && this.activeChat.id === chatId;
+    }
+
+    formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        
+        // Si es hoy, mostrar solo hora
+        if (date.toDateString() === now.toDateString()) {
+            return date.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+        
+        // Si es de esta semana, mostrar día de la semana
+        const daysDiff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+        if (daysDiff < 7) {
+            return date.toLocaleDateString('es-ES', { weekday: 'short' });
+        }
+        
+        // De lo contrario, mostrar fecha completa
+        return date.toLocaleDateString('es-ES', { 
+            day: '2-digit', 
+            month: '2-digit' 
+        });
+    }
+}
+
+// Exportar instancia singleton
+const chatState = new ChatStateManager();
+module.exports = chatState;
+
+client/src/MessageSender.js
+const iceManager = require('./IceConnectionManager');
+const chatState = require('./ChatStateManager');
+
+class MessageSender {
+    async sendMessage(content) {
+        const activeChat = chatState.getActiveChat();
+        
+        if (!activeChat) {
+            throw new Error('No hay un chat activo');
+        }
+
+        if (!content || content.trim() === '') {
+            throw new Error('El mensaje no puede estar vacío');
+        }
+
+        const userId = chatState.getCurrentUserId();
+
+        try {
+            if (activeChat.isGroup) {
+                // Enviar mensaje a grupo
+                await iceManager.sendGroupMessage(userId, activeChat.id, content.trim());
+            } else {
+                // Enviar mensaje directo
+                await iceManager.sendDirectMessage(userId, activeChat.id, content.trim());
+            }
+
+            console.log(`Mensaje enviado exitosamente a ${activeChat.name}`);
+            return true;
+        } catch (error) {
+            console.error('Error al enviar mensaje:', error);
+            throw error;
+        }
+    }
+
+    async sendDirectMessage(toUserId, content) {
+        if (!content || content.trim() === '') {
+            throw new Error('El mensaje no puede estar vacío');
+        }
+
+        const fromUserId = chatState.getCurrentUserId();
+
+        try {
+            await iceManager.sendDirectMessage(fromUserId, toUserId, content.trim());
+            console.log(`Mensaje directo enviado a ${toUserId}`);
+            return true;
+        } catch (error) {
+            console.error('Error al enviar mensaje directo:', error);
+            throw error;
+        }
+    }
+
+    async sendGroupMessage(groupId, content) {
+        if (!content || content.trim() === '') {
+            throw new Error('El mensaje no puede estar vacío');
+        }
+
+        const fromUserId = chatState.getCurrentUserId();
+
+        try {
+            await iceManager.sendGroupMessage(fromUserId, groupId, content.trim());
+            console.log(`Mensaje enviado al grupo ${groupId}`);
+            return true;
+        } catch (error) {
+            console.error('Error al enviar mensaje al grupo:', error);
+            throw error;
+        }
+    }
+}
+
+// Exportar instancia singleton
+const messageSender = new MessageSender();
+module.exports = messageSender;
+
+client/src/MessageReceiver.js
+const iceManager = require('./IceConnectionManager');
+const chatState = require('./ChatStateManager');
+
+class MessageReceiver {
+    async loadChatMessages(chatId, isGroup) {
+        const userId = chatState.getCurrentUserId();
+
+        try {
+            let messages;
+
+            if (isGroup) {
+                // Obtener mensajes del grupo
+                messages = await iceManager.getGroupChatMessages(chatId);
+            } else {
+                // Obtener mensajes del chat directo
+                messages = await iceManager.getDirectChatMessages(userId, chatId);
+            }
+
+            chatState.setActiveMessages(messages);
+            console.log(`Mensajes cargados: ${messages.length}`);
+            
+            return messages;
+        } catch (error) {
+            console.error('Error al cargar mensajes:', error);
+            throw error;
+        }
+    }
+
+    async refreshChats() {
+        const userId = chatState.getCurrentUserId();
+
+        try {
+            // Obtener chats directos y de grupo en paralelo
+            const [directChats, groupChats] = await Promise.all([
+                iceManager.getUserDirectChats(userId),
+                iceManager.getUserGroupChats(userId)
+            ]);
+
+            // Combinar ambos tipos de chats
+            const allChats = [...directChats, ...groupChats];
+            
+            chatState.setChats(allChats);
+            console.log(`Chats actualizados: ${allChats.length} total`);
+            
+            return allChats;
+        } catch (error) {
+            console.error('Error al actualizar chats:', error);
+            throw error;
+        }
+    }
+
+    async loadAllUsers() {
+        try {
+            const users = await iceManager.getAllUsers();
+            chatState.setAllUsers(users);
+            console.log(`Usuarios cargados: ${users.length}`);
+            return users;
+        } catch (error) {
+            console.error('Error al cargar usuarios:', error);
+            throw error;
+        }
+    }
+
+    async refreshActiveChat() {
+        const activeChat = chatState.getActiveChat();
+        
+        if (!activeChat) {
+            console.log('No hay chat activo para actualizar');
+            return null;
+        }
+
+        try {
+            await this.loadChatMessages(activeChat.id, activeChat.isGroup);
+            return chatState.getActiveMessages();
+        } catch (error) {
+            console.error('Error al actualizar el chat activo:', error);
+            throw error;
+        }
+    }
+}
+
+// Exportar instancia singleton
+const messageReceiver = new MessageReceiver();
+module.exports = messageReceiver;
+
+client/src/ChatController.js
+const chatState = require('./ChatStateManager');
+const messageSender = require('./MessageSender');
+const messageReceiver = require('./MessageReceiver');
+const iceManager = require('./IceConnectionManager');
+
+class ChatUIController {
+    constructor() {
+        this.elements = {};
+    }
+
+    initialize() {
+        // Obtener referencias a elementos del DOM
+        this.elements = {
+            chatList: document.getElementById('chat-list'),
+            messagesContainer: document.getElementById('messages-container'),
+            messageInput: document.getElementById('message-input'),
+            btnSendMessage: document.getElementById('btn-send-message'),
+            chatName: document.getElementById('chat-name'),
+            chatType: document.getElementById('chat-type'),
+            currentUserName: document.getElementById('current-user-name'),
+            btnNewGroup: document.getElementById('btn-new-group'),
+            btnRefreshChats: document.getElementById('btn-refresh-chats'),
+            modalNewGroup: document.getElementById('modal-new-group'),
+            modalClose: document.getElementById('modal-close'),
+            btnCancelGroup: document.getElementById('btn-cancel-group'),
+            btnCreateGroup: document.getElementById('btn-create-group'),
+            groupNameInput: document.getElementById('group-name'),
+            usersList: document.getElementById('users-list'),
+            loading: document.getElementById('loading')
+        };
+
+        this.attachEventListeners();
+        this.updateUserInfo();
+    }
+
+    attachEventListeners() {
+        // Enviar mensaje
+        this.elements.btnSendMessage.addEventListener('click', () => this.handleSendMessage());
+        this.elements.messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleSendMessage();
+            }
+        });
+
+        // Actualizar chats
+        this.elements.btnRefreshChats.addEventListener('click', () => this.handleRefreshChats());
+
+        // Modal de nuevo grupo
+        this.elements.btnNewGroup.addEventListener('click', () => this.showNewGroupModal());
+        this.elements.modalClose.addEventListener('click', () => this.hideNewGroupModal());
+        this.elements.btnCancelGroup.addEventListener('click', () => this.hideNewGroupModal());
+        this.elements.btnCreateGroup.addEventListener('click', () => this.handleCreateGroup());
+
+        // Cerrar modal al hacer click fuera
+        this.elements.modalNewGroup.addEventListener('click', (e) => {
+            if (e.target === this.elements.modalNewGroup) {
+                this.hideNewGroupModal();
+            }
+        });
+    }
+
+    updateUserInfo() {
+        this.elements.currentUserName.textContent = chatState.getCurrentUserName();
+    }
+
+    // === Renderizado de chats ===
+
+    renderChatList() {
+        const chats = chatState.getChats();
+        
+        if (chats.length === 0) {
+            this.elements.chatList.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #667781;">
+                    No tienes chats aún.<br>
+                    Crea un grupo para empezar.
+                </div>
+            `;
+            return;
+        }
+
+        this.elements.chatList.innerHTML = '';
+
+        chats.forEach(chat => {
+            const chatItem = this.createChatItemElement(chat);
+            this.elements.chatList.appendChild(chatItem);
+        });
+    }
+
+    createChatItemElement(chat) {
+        const div = document.createElement('div');
+        div.className = 'chat-item';
+        
+        if (chatState.isChatActive(chat.chatId)) {
+            div.classList.add('active');
+        }
+
+        const time = chatState.formatTimestamp(chat.lastMessageTimestamp);
+        const badge = chat.isGroup ? '<span class="chat-item-badge">Grupo</span>' : '';
+
+        div.innerHTML = `
+            <div class="chat-item-header">
+                <span class="chat-item-name">${chat.chatName}${badge}</span>
+                <span class="chat-item-time">${time}</span>
+            </div>
+            <div class="chat-item-preview">${chat.lastMessageContent}</div>
+        `;
+
+        div.addEventListener('click', () => this.handleChatClick(chat));
+
+        return div;
+    }
+
+    async handleChatClick(chat) {
+        try {
+            this.showLoading('Cargando mensajes...');
+            
+            // Establecer chat activo
+            chatState.setActiveChat(chat.chatId, chat.chatName, chat.isGroup);
+            
+            // Cargar mensajes
+            await messageReceiver.loadChatMessages(chat.chatId, chat.isGroup);
+            
+            // Actualizar UI
+            this.updateChatHeader();
+            this.renderMessages();
+            this.enableMessageInput();
+            this.renderChatList(); // Re-renderizar para actualizar selección
+            
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error al seleccionar chat:', error);
+            this.hideLoading();
+            alert('Error al cargar el chat');
+        }
+    }
+
+    // === Renderizado de mensajes ===
+
+    renderMessages() {
+        const messages = chatState.getActiveMessages();
+        const activeChat = chatState.getActiveChat();
+        
+        if (!activeChat) {
+            this.showEmptyState();
+            return;
+        }
+
+        if (messages.length === 0) {
+            this.elements.messagesContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>No hay mensajes en este chat</p>
+                </div>
+            `;
+            return;
+        }
+
+        this.elements.messagesContainer.innerHTML = '';
+
+        messages.forEach(message => {
+            const messageElement = this.createMessageElement(message);
+            this.elements.messagesContainer.appendChild(messageElement);
+        });
+
+        // Scroll hacia abajo
+        this.scrollToBottom();
+    }
+
+    createMessageElement(message) {
+        const div = document.createElement('div');
+        const isSent = message.senderId === chatState.getCurrentUserId();
+        div.className = `message ${isSent ? 'sent' : 'received'}`;
+
+        const time = chatState.formatTimestamp(message.timestamp);
+        const showSender = !isSent && chatState.getActiveChat().isGroup;
+
+        div.innerHTML = `
+            <div class="message-bubble">
+                ${showSender ? `<div class="message-sender">${message.senderName}</div>` : ''}
+                <div class="message-content">${this.escapeHtml(message.content)}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+
+        return div;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    scrollToBottom() {
+        this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+    }
+
+    showEmptyState() {
+        this.elements.messagesContainer.innerHTML = `
+            <div class="empty-state">
+                <p>Selecciona un chat para ver los mensajes</p>
+            </div>
+        `;
+    }
+
+    // === Envío de mensajes ===
+
+    async handleSendMessage() {
+        const content = this.elements.messageInput.value.trim();
+        
+        if (!content) return;
+
+        try {
+            // Enviar mensaje
+            await messageSender.sendMessage(content);
+            
+            // Limpiar input
+            this.elements.messageInput.value = '';
+            
+            // Recargar mensajes del chat activo
+            await messageReceiver.refreshActiveChat();
+            
+            // Re-renderizar mensajes
+            this.renderMessages();
+            
+            // Actualizar lista de chats
+            await this.handleRefreshChats();
+            
+        } catch (error) {
+            console.error('Error al enviar mensaje:', error);
+            alert('Error al enviar el mensaje');
+        }
+    }
+
+    // === Actualización de chats ===
+
+    async handleRefreshChats() {
+        try {
+            await messageReceiver.refreshChats();
+            this.renderChatList();
+        } catch (error) {
+            console.error('Error al actualizar chats:', error);
+        }
+    }
+
+    // === Modal de nuevo grupo ===
+
+    async showNewGroupModal() {
+        try {
+            // Cargar usuarios disponibles
+            await messageReceiver.loadAllUsers();
+            const users = chatState.getUsersExceptCurrent();
+            
+            // Renderizar lista de usuarios
+            this.elements.usersList.innerHTML = '';
+            users.forEach(user => {
+                const label = document.createElement('label');
+                label.className = 'user-checkbox';
+                label.innerHTML = `
+                    <input type="checkbox" value="${user.id}">
+                    <span>${user.name} (${user.id})</span>
+                `;
+                this.elements.usersList.appendChild(label);
+            });
+            
+            // Limpiar campo de nombre
+            this.elements.groupNameInput.value = '';
+            
+            // Mostrar modal
+            this.elements.modalNewGroup.classList.add('show');
+        } catch (error) {
+            console.error('Error al abrir modal de grupo:', error);
+            alert('Error al cargar usuarios');
+        }
+    }
+
+    hideNewGroupModal() {
+        this.elements.modalNewGroup.classList.remove('show');
+    }
+
+    async handleCreateGroup() {
+        const groupName = this.elements.groupNameInput.value.trim();
+        
+        if (!groupName) {
+            alert('Debes ingresar un nombre para el grupo');
+            return;
+        }
+
+        // Obtener miembros seleccionados
+        const checkboxes = this.elements.usersList.querySelectorAll('input[type="checkbox"]:checked');
+        const memberIds = Array.from(checkboxes).map(cb => cb.value);
+
+        if (memberIds.length === 0) {
+            alert('Debes seleccionar al menos un miembro');
+            return;
+        }
+
+        try {
+            this.showLoading('Creando grupo...');
+            
+            const ownerId = chatState.getCurrentUserId();
+            await iceManager.createGroup(ownerId, groupName, memberIds);
+            
+            this.hideNewGroupModal();
+            
+            // Actualizar lista de chats
+            await this.handleRefreshChats();
+            
+            this.hideLoading();
+            
+            alert('Grupo creado exitosamente');
+        } catch (error) {
+            console.error('Error al crear grupo:', error);
+            this.hideLoading();
+            alert('Error al crear el grupo');
+        }
+    }
+
+    // === UI Helpers ===
+
+    updateChatHeader() {
+        const activeChat = chatState.getActiveChat();
+        
+        if (!activeChat) {
+            this.elements.chatName.textContent = 'Selecciona un chat';
+            this.elements.chatType.textContent = '';
+            return;
+        }
+
+        this.elements.chatName.textContent = activeChat.name;
+        this.elements.chatType.textContent = activeChat.isGroup ? 'Grupo' : 'Directo';
+    }
+
+    enableMessageInput() {
+        this.elements.messageInput.disabled = false;
+        this.elements.btnSendMessage.disabled = false;
+        this.elements.messageInput.focus();
+    }
+
+    disableMessageInput() {
+        this.elements.messageInput.disabled = true;
+        this.elements.btnSendMessage.disabled = true;
+    }
+
+    showLoading(message = 'Cargando...') {
+        this.elements.loading.querySelector('p').textContent = message;
+        this.elements.loading.classList.add('show');
+    }
+
+    hideLoading() {
+        this.elements.loading.classList.remove('show');
+    }
+}
+
+// Exportar instancia singleton
+const uiController = new ChatUIController();
+module.exports = uiController;
+
+client/src/index.js
+// Importar estilos
+import './styles.css';
+
+// Importar módulos
+const iceManager = require('./IceConnectionManager');
+const chatState = require('./ChatStateManager');
+const messageReceiver = require('./MessageReceiver');
+const uiController = require('./ChatUIController');
+
+// Función principal de inicialización
+async function initializeApp() {
+    try {
+        // Mostrar loading
+        uiController.showLoading('Conectando al servidor...');
+        
+        // Inicializar UI
+        uiController.initialize();
+        
+        // Conectar al servidor Ice
+        await iceManager.initialize();
+        
+        console.log('Aplicación inicializada correctamente');
+        
+        // Cargar datos iniciales
+        await loadInitialData();
+        
+        // Ocultar loading
+        uiController.hideLoading();
+        
+    } catch (error) {
+        console.error('Error al inicializar la aplicación:', error);
+        uiController.hideLoading();
+        
+        // Mostrar error al usuario
+        alert('No se pudo conectar al servidor. Por favor, asegúrate de que el servidor está ejecutándose en localhost:10000');
+    }
+}
+
+async function loadInitialData() {
+    try {
+        console.log('Cargando datos iniciales...');
+        
+        // Cargar chats del usuario
+        await messageReceiver.refreshChats();
+        
+        // Renderizar lista de chats
+        uiController.renderChatList();
+        
+        console.log('Datos iniciales cargados');
+    } catch (error) {
+        console.error('Error al cargar datos iniciales:', error);
+        throw error;
+    }
+}
+
+// Manejar cierre de ventana
+window.addEventListener('beforeunload', async () => {
+    try {
+        await iceManager.shutdown();
+    } catch (error) {
+        console.error('Error al cerrar conexión:', error);
+    }
+});
+
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}
+
+// Exportar para depuración en consola
+window.chatDebug = {
+    iceManager,
+    chatState,
+    messageReceiver,
+    uiController
+};
+
+
+generate-ice-code.sh
+#!/bin/bash
+
+# Script para generar código Ice para el servidor y cliente
+# Uso: ./generate-ice-code.sh
+
+set -e
+
+echo "======================================"
+echo "  Generador de Código Ice"
+echo "======================================"
+echo ""
+
+# Verificar que slice2java y slice2js estén disponibles
+if ! command -v slice2java &> /dev/null; then
+    echo "❌ Error: slice2java no está instalado o no está en el PATH"
+    echo "   Por favor instala ZeroC Ice 3.7.x"
+    exit 1
+fi
+
+if ! command -v slice2js &> /dev/null; then
+    echo "❌ Error: slice2js no está instalado o no está en el PATH"
+    echo "   Por favor instala ZeroC Ice 3.7.x"
+    exit 1
+fi
+
+echo "✅ Herramientas Ice encontradas"
+echo ""
+
+# Rutas
+ICE_FILE="server/src/main/slice/chat.ice"
+SERVER_OUTPUT="server/build/generated-src"
+CLIENT_OUTPUT="client/src/generated"
+
+# Verificar que el archivo .ice existe
+if [ ! -f "$ICE_FILE" ]; then
+    echo "❌ Error: No se encuentra el archivo $ICE_FILE"
+    exit 1
+fi
+
+echo "📄 Archivo Ice: $ICE_FILE"
+echo ""
+
+# Generar código Java para el servidor
+echo "🔨 Generando código Java para el servidor..."
+mkdir -p "$SERVER_OUTPUT"
+slice2java --output-dir "$SERVER_OUTPUT" "$ICE_FILE"
+
+if [ $? -eq 0 ]; then
+    echo "✅ Código Java generado en: $SERVER_OUTPUT"
+else
+    echo "❌ Error al generar código Java"
+    exit 1
+fi
+
+echo ""
+
+# Generar código JavaScript para el cliente
+echo "🔨 Generando código JavaScript para el cliente..."
+mkdir -p "$CLIENT_OUTPUT"
+slice2js --output-dir "$CLIENT_OUTPUT" "$ICE_FILE"
+
+if [ $? -eq 0 ]; then
+    echo "✅ Código JavaScript generado en: $CLIENT_OUTPUT"
+else
+    echo "❌ Error al generar código JavaScript"
+    exit 1
+fi
+
+echo ""
+echo "======================================"
+echo "  ✅ Generación completada"
+echo "======================================"
+echo ""
+echo "Siguiente paso:"
+echo "  1. Compilar el servidor: cd server && ./gradlew build"
+echo "  2. Instalar dependencias del cliente: cd client && npm install"
+echo "  3. Ejecutar el servidor: cd server && ./gradlew run"
+echo "  4. Ejecutar el cliente: cd client && npm run serve"
+echo ""
+
+server/config.properties
+# Configuración del servidor Ice para CompuNet Chat
+
+# Endpoints del adaptador
+ChatAdapter.Endpoints=ws -h localhost -p 10000:tcp -h localhost -p 10001
+
+# Configuración de Ice
+Ice.ThreadPool.Server.Size=4
+Ice.ThreadPool.Server.SizeMax=10
+
+# Nivel de advertencias y errores
+Ice.Warn.Connections=1
+Ice.Warn.Dispatch=1
+
+# Timeout para operaciones (en milisegundos)
+Ice.Connection.IdleTimeout=60
+
+# Configuración de protocolo
+Ice.Default.Protocol=tcp
+
+# Logging
+Ice.Trace.Network=0
+Ice.Trace.Protocol=0
+
+# Compresión de mensajes
+Ice.Compression.Level=1
+
+# Tamaño máximo de mensajes (en KB)
+Ice.MessageSizeMax=1024
