@@ -1,16 +1,26 @@
-const iceManager = require('./IceConnectionManager');
 const chatState = require('./ChatStateManager');
+const uiController = require('./ChatUIController');
+
 
 class MessageReceiver {
+
+    constructor(iceManagerInstance) {
+        this.iceManager = null;
+    }
+
+    setIceManager(iceManagerInstance) {
+        this.iceManager = iceManagerInstance;
+    }
+
     async loadChatMessages(chatId, isGroup) {
         let messages;
 
         if (isGroup) {
-            messages = await iceManager.getGroupChatMessages(chatId);
+            messages = await this.iceManager.getGroupChatMessages(chatId);
         } else {
             const otherUserId = chatId; 
             const myId = chatState.getCurrentUserId();
-            messages = await iceManager.getDirectChatMessages(myId, otherUserId);
+            messages = await this.iceManager.getDirectChatMessages(myId, otherUserId);
         }
 
         // Ordenar por timestamp ascendente
@@ -23,27 +33,22 @@ class MessageReceiver {
         chatState.setActiveMessages(messages);
     }
 
+    
+
 
     async refreshChats() {
+        if (!this.iceManager) throw new Error('IceManager no asignado');
         const userId = chatState.getCurrentUserId();
+        const [directChats, groupChats] = await Promise.all([
+            this.iceManager.getUserDirectChats(userId),
+            this.iceManager.getUserGroupChats(userId)
+        ]);
 
-        
+        const allChats = [...directChats, ...groupChats];
+        chatState.setChats(allChats);
 
-        try {
-            const [directChats, groupChats] = await Promise.all([
-                iceManager.getUserDirectChats(userId),
-                iceManager.getUserGroupChats(userId)
-            ]);
-
-            const allChats = [...directChats, ...groupChats];
-            chatState.setChats(allChats);
-
-            console.log(`[MessageReceiver] Chats actualizados: ${allChats.length} total`);
-            return allChats;
-        } catch (error) {
-            console.error('Error al actualizar chats:', error);
-            return [];
-        }
+        console.log(`[MessageReceiver] Chats actualizados: ${allChats.length} total`);
+        return allChats;
     }
 
 
@@ -51,7 +56,7 @@ class MessageReceiver {
     async loadAllUsers() {
         // Si la función está definida en IceConnectionManager, esto debe funcionar.
         try {
-            const usersArray = await iceManager.getAllUsers(); // <--- Aquí ya no hay verificación
+            const usersArray = await this.iceManager.getAllUsers(); // <--- Aquí ya no hay verificación
             const users = usersArray.map(u => ({ id: u.id, name: u.name }));
             chatState.setAllUsers(users);
             console.log(`[MessageReceiver] Usuarios cargados: ${users.length}`);
@@ -87,5 +92,5 @@ class MessageReceiver {
 }
 
 // Exportar instancia singleton
-const messageReceiver = new MessageReceiver();
-module.exports = messageReceiver;
+
+module.exports = new MessageReceiver();

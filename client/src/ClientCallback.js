@@ -1,41 +1,37 @@
 const { compunet } = require("./generated/chat.js");
 const chatState = require("./ChatStateManager");
+const uiController = require("./ChatUIController")
+const messageReceiver = require("./MessageReceiver.js")
 
 class ClientCallbackI extends compunet.ClientCallback {
     
     async onNewMessage(msg, current) {
-        console.log("✨ Mensaje recibido en tiempo real:", {
+        console.log(" Mensaje recibido en tiempo real:", {
             de: msg.senderName,
             contenido: msg.content,
             esGrupo: msg.isGroupMessage
         });
 
-        // Agregar mensaje al estado si el chat está activo
+        chatState.addMessage(msg);
+
         const activeChat = chatState.getActiveChat();
         
         if (activeChat) {
-            // Si estamos viendo este chat, agregar el mensaje
-            if ((activeChat.isGroup && msg.chatId === activeChat.id) ||
-                (!activeChat.isGroup && (msg.senderId === activeChat.id || msg.chatId === activeChat.id))) {
-                
-                chatState.addMessage(msg);
-                
-                // Actualizar la UI
-                const uiController = require("./ChatUIController");
-                uiController.renderMessages();
+            
+            const isRelated = (msg.isGroupMessage && msg.chatId === activeChat.id) ||
+                              (!msg.isGroupMessage && (msg.senderId === activeChat.id || msg.chatId === activeChat.id));
+                              
+            if (isRelated) {
+                 uiController.displayNewMessage(msg); 
             }
         }
 
-        // Siempre actualizar la lista de chats para mostrar el último mensaje
-        const messageReceiver = require("./MessageReceiver");
-        const uiController = require("./ChatUIController");
         
-        await messageReceiver.refreshChats();
         uiController.renderChatList();
     }
 
     async onNewGroup(chat, current) {
-        console.log("✨ Nuevo grupo recibido:", chat.chatName);
+        console.log(" Nuevo grupo recibido:", chat.chatName);
 
         // Agregar al estado
         chatState.addChat(chat);
@@ -45,7 +41,7 @@ class ClientCallbackI extends compunet.ClientCallback {
         uiController.renderChatList();
         
         // Mostrar notificación
-        console.log(`📢 Has sido agregado al grupo: ${chat.chatName}`);
+        console.log(` Has sido agregado al grupo: ${chat.chatName}`);
     }
 }
 

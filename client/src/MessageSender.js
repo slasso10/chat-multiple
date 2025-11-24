@@ -1,8 +1,17 @@
-const iceManager = require('./IceConnectionManager');
 const chatState = require('./ChatStateManager');
 const audioManager = require('./AudioManager');
 
 class MessageSender {
+
+    constructor(iceManagerInstance) {
+        this.iceManager = null;
+    }
+
+    setIceManager(iceManagerInstance) {
+        this.iceManager = iceManagerInstance;
+    }
+
+
     async sendMessage(content) {
         const activeChat = chatState.getActiveChat();
         

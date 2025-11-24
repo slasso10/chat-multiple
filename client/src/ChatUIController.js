@@ -1,13 +1,17 @@
 const chatState = require('./ChatStateManager');
 const messageSender = require('./MessageSender');
 const messageReceiver = require('./MessageReceiver');
-const iceManager = require('./IceConnectionManager');
 const audioManager = require('./AudioManager')
 
 class ChatUIController {
     constructor() {
         this.elements = {};
         this.isrecording = false;
+        this.iceManager = null;
+    }
+
+    setIceManager(iceManagerInstance) {
+        this.iceManager = iceManagerInstance;
     }
 
     initialize() {
@@ -186,6 +190,26 @@ class ChatUIController {
         this.scrollToBottom();
     }
 
+    displayNewMessage(message) {
+        const activeChat = chatState.getActiveChat();
+        
+        // Doble verificación: solo mostrar si el chat del mensaje es el que estamos viendo
+        // (Aunque ClientCallbackI ya hizo esta comprobación, es buena práctica)
+        const isRelated = (message.isGroupMessage && message.chatId === activeChat.id) ||
+                          (!message.isGroupMessage && (message.senderId === activeChat.id || message.chatId === activeChat.id));
+
+        if (!isRelated) return;
+        
+        // 1. Crear el elemento DOM del mensaje
+        const messageElement = this.createMessageElement(message);
+        
+        // 2. Añadirlo al contenedor
+        this.elements.messagesContainer.appendChild(messageElement);
+        
+        // 3. Desplazar al final para ver el nuevo mensaje
+        this.scrollToBottom();
+    }
+
     createMessageElement(message) {
         const div = document.createElement('div');
         const isSent = message.senderId === chatState.getCurrentUserId();
@@ -320,7 +344,7 @@ class ChatUIController {
             this.showLoading('Creando grupo...');
             
             const ownerId = chatState.getCurrentUserId();
-            await iceManager.createGroup(ownerId, groupName, memberIds);
+            await this.iceManager.createGroup(ownerId, groupName, memberIds);
             
             this.hideNewGroupModal();
             

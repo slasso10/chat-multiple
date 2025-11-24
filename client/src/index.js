@@ -6,6 +6,12 @@ const iceManager = require('./IceConnectionManager');
 const chatState = require('./ChatStateManager');
 const messageReceiver = require('./MessageReceiver');
 const uiController = require('./ChatUIController');
+const messageSender = require('./MessageSender');
+
+messageReceiver.setIceManager(iceManager);
+uiController.setIceManager(iceManager);
+messageSender.setIceManager(iceManager);
+
 
 
 function waitForLogin() {
@@ -41,6 +47,9 @@ async function initializeApp() {
         uiController.showLoading('Conectando al servidor...');
 
         await iceManager.initialize();
+        messageReceiver.setIceManager(iceManager);
+        messageSender.setIceManager(iceManager);
+
         uiController.hideLoading(); 
 
         // 3. Mostrar Modal y esperar el Login
@@ -78,6 +87,11 @@ async function initializeApp() {
 async function loadInitialData() {
     try {
         console.log('Cargando datos iniciales...');
+
+        console.log('MessageReceiver.iceManager:', messageReceiver.iceManager);
+        console.log('MessageReceiver.iceManager.getUserDirectChats:', messageReceiver.iceManager?.getUserDirectChats);
+
+
         
         // Cargar chats del usuario
         await messageReceiver.refreshChats();

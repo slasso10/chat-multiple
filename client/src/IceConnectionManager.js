@@ -110,16 +110,6 @@ class IceConnectionManager {
         }
     }
 
-    async getUserDirectChats(userId) {
-        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
-        try {
-            return await this.chatServicePrx.getUserDirectChats(userId);
-        } catch (error) {
-            console.error('Error al obtener chats directos:', error);
-            throw error;
-        }
-    }
-
     async loginAndSetup(userId, userName) {
         // 1. Registrar el usuario en el servidor (ChatService)
         await this.registerUser(userId, userName); 
@@ -206,6 +196,17 @@ class IceConnectionManager {
             return await this.groupServicePrx.getGroupChatMessages(groupId);
         } catch (error) {
             console.error('Error al obtener mensajes del grupo:', error);
+            throw error;
+        }
+    }
+
+    async getUserDirectChats(userId) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            // Llama al proxy del servicio de Chat
+            return await this.chatServicePrx.getUserDirectChats(userId);
+        } catch (error) {
+            console.error('Error al obtener chats directos:', error);
             throw error;
         }
     }
