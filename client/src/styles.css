@@ -286,6 +286,105 @@ body {
     animation: spin 0.8s linear infinite;
 }
 
+.btn-record {
+    padding: 10px 14px;
+    background-color: #238636;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s;
+}
+
+.btn-record:hover {
+    background-color: #2ea043;
+    transform: scale(1.1);
+}
+
+.btn-record.recording {
+    background-color: #da3633;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.btn-record:disabled {
+    background-color: #6e7681;
+    cursor: not-allowed;
+}
+
+/* Estilos para mensajes de audio */
+.audio-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background-color: #1f6feb22;
+    border-radius: 8px;
+    margin: 4px 0;
+}
+
+.audio-play-btn {
+    background-color: #1f6feb;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.audio-play-btn:hover {
+    background-color: #388bfd;
+}
+
+.audio-duration {
+    font-size: 12px;
+    color: #8b949e;
+}
+
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* ====== ESTILO PARA EL BADGE DE GRUPO EN LA LISTA DE CHATS ====== */
+.chat-item-header {
+    /* Usar flexbox para alinear el nombre, el badge y la hora */
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Para que la hora se vaya al final */
+    gap: 10px; /* Espacio entre los elementos del header */
+}
+
+.chat-item-name {
+    /* Permitir que el nombre y el badge estén juntos, pero darles espacio para respirar */
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    /* Para que el nombre no ocupe todo el espacio y permita que la hora se mueva a la derecha */
+    flex-shrink: 1; 
+}
+
+.chat-item-badge {
+    /* Clase para el badge que envuelve la palabra "Grupo" */
+    display: inline-block; 
+    
+    /* 🔑 CLAVE: Añadir un margen para separar el badge del nombre del grupo */
+    margin-left: 8px; 
+    
+    /* Estilos visuales */
+    background-color: #388bfd; /* Azul, similar a chat-type-badge */
+    color: white;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px; /* Más pequeño para que se vea como una etiqueta */
+    font-weight: 600;
 }

@@ -27,35 +27,37 @@ class MessageReceiver {
     async refreshChats() {
         const userId = chatState.getCurrentUserId();
 
+        
+
         try {
-            // Obtener chats directos y de grupo en paralelo
             const [directChats, groupChats] = await Promise.all([
                 iceManager.getUserDirectChats(userId),
                 iceManager.getUserGroupChats(userId)
             ]);
 
-            // Combinar ambos tipos de chats
             const allChats = [...directChats, ...groupChats];
-            
             chatState.setChats(allChats);
-            console.log(`Chats actualizados: ${allChats.length} total`);
-            
+
+            console.log(`[MessageReceiver] Chats actualizados: ${allChats.length} total`);
             return allChats;
         } catch (error) {
             console.error('Error al actualizar chats:', error);
-            throw error;
+            return [];
         }
     }
 
+
+
     async loadAllUsers() {
+        // Si la función está definida en IceConnectionManager, esto debe funcionar.
         try {
-            const users = await iceManager.getAllUsers();
+            const usersArray = await iceManager.getAllUsers(); // <--- Aquí ya no hay verificación
+            const users = usersArray.map(u => ({ id: u.id, name: u.name }));
             chatState.setAllUsers(users);
-            console.log(`Usuarios cargados: ${users.length}`);
+            console.log(`[MessageReceiver] Usuarios cargados: ${users.length}`);
             return users;
         } catch (error) {
-            console.error('Error al cargar usuarios:', error);
-            throw error;
+            // ...
         }
     }
 

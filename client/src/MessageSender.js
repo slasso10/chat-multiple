@@ -1,5 +1,6 @@
 const iceManager = require('./IceConnectionManager');
 const chatState = require('./ChatStateManager');
+const audioManager = require('./AudioManager');
 
 class MessageSender {
     async sendMessage(content) {
@@ -62,6 +63,35 @@ class MessageSender {
             return true;
         } catch (error) {
             console.error('Error al enviar mensaje al grupo:', error);
+            throw error;
+        }
+    }
+    async sendAudio(audioBlob) {
+        const activeChat = chatState.getActiveChat();
+        
+        if (!activeChat) {
+            throw new Error('No hay un chat activo');
+        }
+
+        const userId = chatState.getCurrentUserId();
+
+        try {
+            // Convertir blob a base64
+            const base64Audio = await audioManager.blobToBase64(audioBlob);
+            
+            // Obtener duración
+            const duration = await audioManager.getAudioDuration(audioBlob);
+
+            if (activeChat.isGroup) {
+                await iceManager.sendGroupAudio(userId, activeChat.id, base64Audio, duration);
+            } else {
+                await iceManager.sendDirectAudio(userId, activeChat.id, base64Audio, duration);
+            }
+
+            console.log(`Nota de voz enviada exitosamente (${duration}s)`);
+            return true;
+        } catch (error) {
+            console.error('Error al enviar nota de voz:', error);
             throw error;
         }
     }

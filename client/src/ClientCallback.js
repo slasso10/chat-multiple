@@ -1,25 +1,51 @@
 const { compunet } = require("./generated/chat.js");
 const chatState = require("./ChatStateManager");
-const ui = require("./ChatUIController");
 
 class ClientCallbackI extends compunet.ClientCallback {
     
     async onNewMessage(msg, current) {
-        console.log("Mensaje recibido en tiempo real:", msg);
+        console.log("✨ Mensaje recibido en tiempo real:", {
+            de: msg.senderName,
+            contenido: msg.content,
+            esGrupo: msg.isGroupMessage
+        });
 
-        // Agregar al estado
-        chatState.addMessage(msg);
+        // Agregar mensaje al estado si el chat está activo
+        const activeChat = chatState.getActiveChat();
+        
+        if (activeChat) {
+            // Si estamos viendo este chat, agregar el mensaje
+            if ((activeChat.isGroup && msg.chatId === activeChat.id) ||
+                (!activeChat.isGroup && (msg.senderId === activeChat.id || msg.chatId === activeChat.id))) {
+                
+                chatState.addMessage(msg);
+                
+                // Actualizar la UI
+                const uiController = require("./ChatUIController");
+                uiController.renderMessages();
+            }
+        }
 
-        // Si el usuario está viendo el chat, actualizar la UI
-        ui.renderMessages();
-        ui.renderChatList();
+        // Siempre actualizar la lista de chats para mostrar el último mensaje
+        const messageReceiver = require("./MessageReceiver");
+        const uiController = require("./ChatUIController");
+        
+        await messageReceiver.refreshChats();
+        uiController.renderChatList();
     }
 
     async onNewGroup(chat, current) {
-        console.log("Nuevo grupo recibido:", chat);
+        console.log("✨ Nuevo grupo recibido:", chat.chatName);
 
+        // Agregar al estado
         chatState.addChat(chat);
-        ui.renderChatList();
+
+        // Actualizar la UI
+        const uiController = require("./ChatUIController");
+        uiController.renderChatList();
+        
+        // Mostrar notificación
+        console.log(`📢 Has sido agregado al grupo: ${chat.chatName}`);
     }
 }
 

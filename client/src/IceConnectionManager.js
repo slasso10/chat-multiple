@@ -1,10 +1,6 @@
-const {compunet} = require('./generated/chat.js');
+const { compunet } = require('./generated/chat.js');
 const Ice = require('ice').Ice;
 const ClientCallbackI = require("./ClientCallback");
-
-
-// Importar las definiciones Ice manuales (compatibles con Webpack)
-
 
 class IceConnectionManager {
     constructor() {
@@ -12,24 +8,20 @@ class IceConnectionManager {
         this.chatServicePrx = null;
         this.groupServicePrx = null;
         this.isConnected = false;
+        this.callbackAdapter = null;
     }
 
     async initialize() {
         try {
             console.log('Inicializando conexión Ice...');
-            const initProps = new Ice.Properties();
-            initProps.setProperty("Ice.Default.Outgoing", "ws"); 
             
-            // Asegura que el cliente Ice sepa manejar callbacks
-            // Ice.UseDefaultAdapters es necesario para que Ice/JS cree un adaptador de cliente
-            this.communicator = Ice.initialize(
-                [ ], 
-                initProps, 
-                Ice.createInitializationData()
-            );
+            // Inicializar comunicador con propiedades para callbacks
+            const initData = new Ice.InitializationData();
+            initData.properties = Ice.createProperties();
             
+            this.communicator = Ice.initialize(initData);
             
-
+            // Crear proxies para los servicios principales
             const chatBase = this.communicator.stringToProxy("chat:ws -h localhost -p 10000");
             this.chatServicePrx = await compunet.ChatServicePrx.checkedCast(chatBase);
 
@@ -51,7 +43,6 @@ class IceConnectionManager {
             throw error;
         }
     }
-
 
     async shutdown() {
         if (this.communicator) {
@@ -129,6 +120,16 @@ class IceConnectionManager {
         }
     }
 
+    async loginAndSetup(userId, userName) {
+        // 1. Registrar el usuario en el servidor (ChatService)
+        await this.registerUser(userId, userName); 
+        
+        // 2. Registrar el callback local en el servidor
+        await this.registerCallback(userId); 
+        
+        console.log(` Login completo: ${userName}`);
+    }
+
     // === Métodos de GroupService ===
 
     async createGroup(ownerId, groupName, memberIds) {
@@ -175,6 +176,30 @@ class IceConnectionManager {
         }
     }
 
+    async sendDirectAudio(fromUserId, toUserId, audioData, duration) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            // Llama al proxy con la firma exacta del Slice
+            await this.chatServicePrx.sendDirectAudio(fromUserId, toUserId, audioData, duration);
+            console.log(`Audio enviado de ${fromUserId} a ${toUserId}`);
+        } catch (error) {
+            console.error('Error al enviar audio directo:', error);
+            throw error;
+        }
+    }
+
+    async sendGroupAudio(fromUserId, groupId, audioData, duration) {
+        if (!this.isConnected) throw new Error('No hay conexión con el servidor');
+        try {
+            // Llama al proxy con la firma exacta del Slice
+            await this.groupServicePrx.sendGroupAudio(fromUserId, groupId, audioData, duration);
+            console.log(`Audio enviado al grupo ${groupId}`);
+        } catch (error) {
+            console.error('Error al enviar audio al grupo:', error);
+            throw error;
+        }
+    }
+
     async getGroupChatMessages(groupId) {
         if (!this.isConnected) throw new Error('No hay conexión con el servidor');
         try {
@@ -195,30 +220,31 @@ class IceConnectionManager {
         }
     }
 
+    // === Registro de Callbacks ===
+
     async registerCallback(userId) {
         try {
             console.log("Registrando callback para:", userId);
 
+            // Crear adapter local para callbacks
+            this.callbackAdapter = await this.communicator.createObjectAdapter("");
+            
+            // Activar adapter
+            await this.callbackAdapter.activate();
 
-            // 2. Crear adapter local
-            const adapter = this.communicator.createObjectAdapter("");
-
-            // 3. Activar adapter
-            adapter.activate();
-
-            // 4. Crear el servant
+            // Crear el servant del callback
             const servant = new ClientCallbackI();
 
-            // 5. Identidad única
-            const ident = Ice.stringToIdentity("cb_" + userId);
+            // Crear identidad única para este cliente
+            const identity = new Ice.Identity("callback_" + userId, "");
 
-            // 6. Registrar servant en el adapter
-            const proxy = adapter.add(servant, ident);
+            // Registrar servant en el adapter
+            const proxy = this.callbackAdapter.add(servant, identity);
 
-            // 7. Registrar en el servidor
+            // Registrar en el servidor
             await this.chatServicePrx.registerCallback(proxy, userId);
 
-            console.log("Callback registrado con éxito.");
+            console.log("Callback registrado con éxito para:", userId);
 
         } catch (err) {
             console.error("Error registrando callback:", err);
@@ -226,9 +252,14 @@ class IceConnectionManager {
         }
     }
 
-
-
-
+    async unregisterCallback(userId) {
+        try {
+            await this.chatServicePrx.unregisterCallback(userId);
+            console.log("Callback eliminado para:", userId);
+        } catch (err) {
+            console.error("Error eliminando callback:", err);
+        }
+    }
 }
 
 // Exportar una instancia singleton

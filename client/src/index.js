@@ -7,84 +7,84 @@ const chatState = require('./ChatStateManager');
 const messageReceiver = require('./MessageReceiver');
 const uiController = require('./ChatUIController');
 
-// ===============================
-//  Inicialización principal
-// ===============================
+
+function waitForLogin() {
+    return new Promise(resolve => {
+        // Usa el elemento que ya referenciamos en el UI Controller
+        uiController.elements.btnLogin.addEventListener('click', function handler() {
+            const userId = uiController.elements.loginNameInput.value.trim();
+            if (userId) {
+                // Quitar el listener después de usarlo
+                uiController.elements.btnLogin.removeEventListener('click', handler); 
+                resolve(userId);
+            } else {
+                alert('Por favor, ingresa tu nombre.');
+                uiController.elements.loginNameInput.focus();
+            }
+        }); 
+        
+        // Opcional: Permitir Enter en el campo
+        uiController.elements.loginNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                uiController.elements.btnLogin.click();
+            }
+        });
+    });
+}
+
+// Función principal de inicialización
 async function initializeApp() {
     try {
+
+        // 1. Inicializar UI y obtener elementos del DOM
         uiController.initialize();
         uiController.showLoading('Conectando al servidor...');
 
-        // 1. Conectar a ICE primero (no requiere usuario)
         await iceManager.initialize();
+        uiController.hideLoading(); 
 
+        // 3. Mostrar Modal y esperar el Login
+        uiController.showLoginModal();
+        const userId = await waitForLogin(); // Espera hasta que el usuario haga clic
+
+        // 🚨 CAMBIO CLAVE AQUÍ 🚨
+        // OCULTAR EL MODAL SÓLO DESPUÉS DE OBTENER UN ID VÁLIDO
+        uiController.hideLoginModal(); // <-- ¡Añadir o mover esta línea aquí! 
+
+        // Continuar con el login real
+        
+        const userName = userId;
+
+        uiController.showLoading(`Registrando usuario: ${userName}...`);
+        chatState.setCurrentUser(userId, userName);
+        await iceManager.loginAndSetup(userId, userName);
+
+        // 4. Habilitar la aplicación
+        uiController.updateUserInfo(); 
+        uiController.attachEventListeners(); 
+        await loadInitialData();
         uiController.hideLoading();
-
-        // 2. Mostrar modal login
-        setupLoginModal();
-
-    } catch (err) {
-        console.error("Error al inicializar:", err);
+        
+    } catch (error) {
+        console.error('Error al inicializar la aplicación:', error);
         uiController.hideLoading();
-        alert("No se pudo conectar al servidor ICE.");
+        
+        // Mostrar error al usuario
+        alert('No se pudo conectar al servidor. Por favor, asegúrate de que el servidor está ejecutándose en localhost:10000');
     }
 }
 
-// ===============================
-//  Login
-// ===============================
-function setupLoginModal() {
-    const loginModal = document.getElementById("modal-login");
-    const loginInput = document.getElementById("login-name");
-    const loginButton = document.getElementById("btn-login");
 
-    loginModal.style.display = "flex";
-
-    loginButton.onclick = async () => {
-        const name = loginInput.value.trim();
-        if (name === "") {
-            alert("Escribe un nombre");
-            return;
-        }
-
-        // ID único real
-        const userId = crypto.randomUUID();
-
-        // Guardar en estado
-        chatState.setCurrentUser(userId, name);
-
-        try {
-            // Registrar en Ice
-            await iceManager.registerUser(userId, name);
-
-            // Registrar callback RPC
-            await iceManager.registerCallback(userId);
-
-            // Mostrar nombre en UI
-            document.getElementById("current-user-name").innerText = name;
-
-            loginModal.style.display = "none";
-
-            // Cargar datos iniciales
-            await loadInitialData();
-
-        } catch (error) {
-            console.error("Error en login:", error);
-            alert("Error al registrar usuario en el servidor.");
-        }
-    };
-}
-
-// ===============================
-//  Cargar chats y mensajes
-// ===============================
 async function loadInitialData() {
     try {
         console.log('Cargando datos iniciales...');
-
+        
+        // Cargar chats del usuario
         await messageReceiver.refreshChats();
+        
+        // Renderizar lista de chats
         uiController.renderChatList();
-
+        
         console.log('Datos iniciales cargados');
     } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
@@ -92,9 +92,7 @@ async function loadInitialData() {
     }
 }
 
-// ===============================
-//  Cerrar conexión al salir
-// ===============================
+// Manejar cierre de ventana
 window.addEventListener('beforeunload', async () => {
     try {
         await iceManager.shutdown();
@@ -103,18 +101,14 @@ window.addEventListener('beforeunload', async () => {
     }
 });
 
-// ===============================
-//  Arranque DOM
-// ===============================
+// Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     initializeApp();
 }
 
-// ===============================
-//  Debug
-// ===============================
+// Exportar para depuración en consola
 window.chatDebug = {
     iceManager,
     chatState,

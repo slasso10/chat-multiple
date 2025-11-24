@@ -19,9 +19,6 @@ public class ServerMain {
             // Crear la lógica central compartida
             ChatCore chatCore = new ChatCore();
 
-            // Inicializar usuarios de prueba
-            initializeTestData(chatCore);
-
             // Crear e instalar los servants
             ChatServiceI chatService = new ChatServiceI(chatCore);
             GroupServiceI groupService = new GroupServiceI(chatCore);
@@ -65,27 +62,4 @@ public class ServerMain {
         System.exit(status);
     }
 
-    private static void initializeTestData(ChatCore chatCore) {
-        System.out.println("Inicializando datos de prueba...");
-
-        // Crear usuarios de prueba
-        chatCore.registerUser("user1", "Alice");
-        chatCore.registerUser("user2", "Bob");
-        chatCore.registerUser("user3", "Charlie");
-        chatCore.registerUser("user4", "Diana");
-
-        // Crear un grupo de prueba
-        String groupId = chatCore.createGroup("user1", "Proyecto Universitario",
-                new String[] { "user2", "user3" });
-
-        // Enviar algunos mensajes de prueba
-        chatCore.sendDirectMessage("user2", "user1", "Hola Alice, ¿cómo estás?");
-        chatCore.sendDirectMessage("user1", "user2", "¡Hola Bob! Todo bien, ¿y tú?");
-
-        chatCore.sendGroupMessage("user1", groupId, "¡Bienvenidos al grupo del proyecto!");
-        chatCore.sendGroupMessage("user2", groupId, "Gracias Alice, listo para trabajar.");
-
-        System.out.println("Datos de prueba inicializados correctamente.");
-        System.out.println();
-    }
 }

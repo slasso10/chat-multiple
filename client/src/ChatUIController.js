@@ -2,10 +2,12 @@ const chatState = require('./ChatStateManager');
 const messageSender = require('./MessageSender');
 const messageReceiver = require('./MessageReceiver');
 const iceManager = require('./IceConnectionManager');
+const audioManager = require('./AudioManager')
 
 class ChatUIController {
     constructor() {
         this.elements = {};
+        this.isrecording = false;
     }
 
     initialize() {
@@ -26,10 +28,13 @@ class ChatUIController {
             btnCreateGroup: document.getElementById('btn-create-group'),
             groupNameInput: document.getElementById('group-name'),
             usersList: document.getElementById('users-list'),
-            loading: document.getElementById('loading')
+            loading: document.getElementById('loading'),
+            modalLogin: document.getElementById('modal-login'),
+            loginNameInput: document.getElementById('login-name'),
+            btnLogin: document.getElementById('btn-login')
         };
 
-        this.attachEventListeners();
+        
         this.updateUserInfo();
     }
 
@@ -57,10 +62,22 @@ class ChatUIController {
                 this.hideNewGroupModal();
             }
         });
+
+        this.elements.btnRecordAudio = document.getElementById('btn-record-audio');
+        this.elements.btnRecordAudio.addEventListener('click', () => this.handleRecordAudio());
     }
 
     updateUserInfo() {
         this.elements.currentUserName.textContent = chatState.getCurrentUserName();
+    }
+
+    showLoginModal() {
+        this.elements.modalLogin.style.display = 'flex';
+        this.elements.loginNameInput.focus();
+    }
+
+    hideLoginModal() {
+        this.elements.modalLogin.style.display = 'none';
     }
 
     // === Renderizado de chats ===
@@ -250,6 +267,7 @@ class ChatUIController {
 
     async showNewGroupModal() {
         try {
+            console.log('Botón Nuevo Grupo presionado. Intentando cargar usuarios...'); // <--- AÑADE ESTO
             // Cargar usuarios disponibles
             await messageReceiver.loadAllUsers();
             const users = chatState.getUsersExceptCurrent();
@@ -352,6 +370,108 @@ class ChatUIController {
 
     hideLoading() {
         this.elements.loading.classList.remove('show');
+    }
+
+    async handleRecordAudio() {
+        if (!this.isRecording) {
+            // Iniciar grabación
+            try {
+                await audioManager.initialize();
+                await audioManager.startRecording();
+                
+                this.isRecording = true;
+                this.elements.btnRecordAudio.textContent = '⏹️';
+                this.elements.btnRecordAudio.classList.add('recording');
+                this.elements.messageInput.disabled = true;
+                this.elements.btnSendMessage.disabled = true;
+                
+                console.log('🎙️ Grabando...');
+            } catch (error) {
+                console.error('Error al iniciar grabación:', error);
+                alert('No se pudo acceder al micrófono. Verifica los permisos.');
+            }
+        } else {
+            // Detener y enviar
+            try {
+                const audioBlob = await audioManager.stopRecording();
+                
+                this.isRecording = false;
+                this.elements.btnRecordAudio.textContent = '🎤';
+                this.elements.btnRecordAudio.classList.remove('recording');
+                this.elements.messageInput.disabled = false;
+                this.elements.btnSendMessage.disabled = false;
+                
+                // Mostrar confirmación
+                if (confirm('¿Enviar nota de voz?')) {
+                    this.showLoading('Enviando audio...');
+                    
+                    await messageSender.sendAudio(audioBlob);
+                    
+                    // Recargar mensajes
+                    await messageReceiver.refreshActiveChat();
+                    this.renderMessages();
+                    await this.handleRefreshChats();
+                    
+                    this.hideLoading();
+                }
+                
+            } catch (error) {
+                console.error('Error al enviar audio:', error);
+                alert('Error al enviar la nota de voz');
+                this.hideLoading();
+            }
+        }
+    }
+
+    // Actualizar createMessageElement para soportar audio:
+
+    createMessageElement(message) {
+        const div = document.createElement('div');
+        const isSent = message.senderId === chatState.getCurrentUserId();
+        div.className = `message ${isSent ? 'sent' : 'received'}`;
+
+        const time = chatState.formatTimestamp(message.timestamp);
+        const showSender = !isSent && chatState.getActiveChat().isGroup;
+
+        let contentHTML;
+        
+        if (message.isAudio) {
+            // Es una nota de voz
+            contentHTML = `
+                <div class="audio-message">
+                    <button class="audio-play-btn" data-audio="${message.audioData}">▶️</button>
+                    <span class="audio-duration">${message.audioDuration}s</span>
+                </div>
+            `;
+        } else {
+            // Es texto normal
+            contentHTML = `<div class="message-content">${this.escapeHtml(message.content)}</div>`;
+        }
+
+        div.innerHTML = `
+            <div class="message-bubble">
+                ${showSender ? `<div class="message-sender">${message.senderName}</div>` : ''}
+                ${contentHTML}
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+
+        // Si es audio, agregar evento para reproducir
+        if (message.isAudio) {
+            const playBtn = div.querySelector('.audio-play-btn');
+            playBtn.addEventListener('click', async () => {
+                try {
+                    playBtn.textContent = '⏸️';
+                    await audioManager.playAudio(message.audioData);
+                    playBtn.textContent = '▶️';
+                } catch (error) {
+                    console.error('Error al reproducir audio:', error);
+                    playBtn.textContent = '▶️';
+                }
+            });
+        }
+
+        return div;
     }
 }
 

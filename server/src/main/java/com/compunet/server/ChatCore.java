@@ -4,6 +4,7 @@ import compunet.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class ChatCore {
     // Almacenamiento en memoria
@@ -12,11 +13,13 @@ public class ChatCore {
     private final Map<String, List<Message>> directMessages = new ConcurrentHashMap<>();
     private final Map<String, List<Message>> groupMessages = new ConcurrentHashMap<>();
 
+    private final Map<String, ClientCallbackPrx> activeClients = new ConcurrentHashMap<>();
+
     private final AtomicLong messageIdCounter = new AtomicLong(0);
     private final AtomicLong groupIdCounter = new AtomicLong(0);
 
     // Clase interna para representar un grupo
-    public static class Group {
+    private static class Group {
         String id;
         String name;
         String ownerId;
@@ -30,14 +33,39 @@ public class ChatCore {
         }
     }
 
+    public void registerClientCallback(String userId, ClientCallbackPrx clientPrx) {
+        activeClients.put(userId, clientPrx);
+        System.out.println(" Cliente registrado para callbacks: " + userId);
+    }
+
+    public void unregisterClientCallback(String userId) {
+        activeClients.remove(userId);
+        System.out.println(" Cliente desregistrado para callbacks: " + userId);
+    }
+
+    private void notifyClient(String userId, Message message) {
+        ClientCallbackPrx clientPrx = activeClients.get(userId);
+        if (clientPrx != null) {
+            try {
+                // Llama al método del callback definido en Slice
+                clientPrx.onNewMessage(message);
+                System.out.println("Notificación enviada a " + userId + " sobre mensaje " + message.id);
+            } catch (com.zeroc.Ice.CommunicatorDestroyedException e) {
+                // Comunicación perdida (posiblemente el cliente cerró o falló)
+                System.err.println("Error de comunicación con el cliente " + userId + ". Desregistrando.");
+                activeClients.remove(userId);
+            } catch (Exception e) {
+                System.err.println("Error al notificar al cliente " + userId + ": " + e.getMessage());
+            }
+        }
+    }
+
     // === Gestión de usuarios ===
 
     public void registerUser(String userId, String userName) {
-        if (!users.containsKey(userId)) {
-            User user = new User(userId, userName);
-            users.put(userId, user);
-            System.out.println("Usuario registrado: " + userId + " (" + userName + ")");
-        }
+        User user = new User(userId, userName);
+        users.put(userId, user); // Si el ID existe, se sobreescribe con el nuevo nombre.
+        System.out.println("Usuario registrado/actualizado: " + userId + " (" + userName + ")");
     }
 
     public User getUser(String userId) {
@@ -50,9 +78,7 @@ public class ChatCore {
 
     // === Mensajes directos ===
 
-    // Ahora devuelve el Message creado para que el servicio pueda notificar
-    // callbacks
-    public Message sendDirectMessage(String fromUserId, String toUserId, String content) {
+    public void sendDirectMessage(String fromUserId, String toUserId, String content) {
         User sender = users.get(fromUserId);
         if (sender == null) {
             throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
@@ -64,20 +90,48 @@ public class ChatCore {
         }
 
         String chatKey = getChatKey(fromUserId, toUserId);
-        long ts = System.currentTimeMillis();
-
         Message message = new Message(
                 String.valueOf(messageIdCounter.incrementAndGet()),
                 fromUserId,
                 sender.name,
                 content,
-                ts,
+                System.currentTimeMillis(),
                 toUserId,
-                false);
+                false,
+                false,
+                "",
+                0);
 
         directMessages.computeIfAbsent(chatKey, k -> new ArrayList<>()).add(message);
-        System.out.println("Mensaje directo creado de " + fromUserId + " a " + toUserId + " (id=" + message.id + ")");
-        return message;
+        System.out.println("Mensaje directo enviado de " + fromUserId + " a " + toUserId);
+        notifyClient(toUserId, message);
+    }
+
+    public void sendDirectAudio(String fromUserId, String toUserId, String audioData, int duration) {
+        User sender = users.get(fromUserId);
+        if (sender == null) {
+            throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
+        }
+
+        String chatKey = getChatKey(fromUserId, toUserId);
+        Message message = new Message(
+                String.valueOf(messageIdCounter.incrementAndGet()),
+                fromUserId,
+                sender.name,
+                "Nota de voz", // Contenido de texto resumido
+                System.currentTimeMillis(),
+                toUserId,
+                false,
+                true, // ¡Es audio!
+                audioData,
+                duration);
+
+        directMessages.computeIfAbsent(chatKey, k -> new ArrayList<>()).add(message);
+        System.out
+                .println("Audio directo enviado de " + fromUserId + " a " + toUserId + ". Duración: " + duration + "s");
+
+        // 💡 Notificar al receptor (igual que el texto)
+        notifyClient(toUserId, message);
     }
 
     public List<Message> getDirectChatMessages(String userId, String otherUserId) {
@@ -128,7 +182,6 @@ public class ChatCore {
 
     // === Gestión de grupos ===
 
-    // Se mantiene createGroup (retorna groupId)
     public String createGroup(String ownerId, String groupName, String[] memberIds) {
         User owner = users.get(ownerId);
         if (owner == null) {
@@ -167,8 +220,7 @@ public class ChatCore {
 
     // === Mensajes de grupo ===
 
-    // Ahora devuelve el Message creado
-    public Message sendGroupMessage(String fromUserId, String groupId, String content) {
+    public void sendGroupMessage(String fromUserId, String groupId, String content) {
         User sender = users.get(fromUserId);
         if (sender == null) {
             throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
@@ -183,20 +235,64 @@ public class ChatCore {
             throw new RuntimeException("Usuario no es miembro del grupo: " + fromUserId);
         }
 
-        long ts = System.currentTimeMillis();
-
         Message message = new Message(
                 String.valueOf(messageIdCounter.incrementAndGet()),
                 fromUserId,
                 sender.name,
                 content,
-                ts,
+                System.currentTimeMillis(),
                 groupId,
-                true);
+                true,
+                false,
+                "",
+                0);
 
         groupMessages.computeIfAbsent(groupId, k -> new ArrayList<>()).add(message);
-        System.out.println("Mensaje creado en el grupo " + groupId + " por " + fromUserId + " (id=" + message.id + ")");
-        return message;
+        System.out.println("Mensaje enviado al grupo " + groupId + " por " + fromUserId);
+        for (String memberId : group.memberIds) {
+            if (!memberId.equals(fromUserId)) { // No te envíes la notificación a ti mismo
+                notifyClient(memberId, message);
+            }
+        }
+    }
+
+    public void sendGroupAudio(String fromUserId, String groupId, String audioData, int duration) {
+        User sender = users.get(fromUserId);
+        if (sender == null) {
+            throw new RuntimeException("Usuario emisor no encontrado: " + fromUserId);
+        }
+
+        Group group = groups.get(groupId);
+        if (group == null) {
+            throw new RuntimeException("Grupo no encontrado: " + groupId);
+        }
+
+        if (!group.memberIds.contains(fromUserId)) {
+            throw new RuntimeException("Usuario no es miembro del grupo: " + fromUserId);
+        }
+
+        Message message = new Message(
+                String.valueOf(messageIdCounter.incrementAndGet()),
+                fromUserId,
+                sender.name,
+                "Nota de voz de grupo", // Contenido de texto resumido
+                System.currentTimeMillis(),
+                groupId,
+                true,
+                true, // ¡Es audio!
+                audioData,
+                duration);
+
+        groupMessages.computeIfAbsent(groupId, k -> new ArrayList<>()).add(message);
+        System.out
+                .println("Audio enviado al grupo " + groupId + " por " + fromUserId + ". Duración: " + duration + "s");
+
+        // 💡 Notificar a todos los miembros del grupo
+        for (String memberId : group.memberIds) {
+            if (!memberId.equals(fromUserId)) {
+                notifyClient(memberId, message);
+            }
+        }
     }
 
     public List<Message> getGroupChatMessages(String groupId) {
@@ -229,10 +325,5 @@ public class ChatCore {
 
         summaries.sort((a, b) -> Long.compare(b.lastMessageTimestamp, a.lastMessageTimestamp));
         return summaries;
-    }
-
-    // Exponer groups si algún servicio necesita revisar miembros
-    public Map<String, Group> getGroups() {
-        return Collections.unmodifiableMap(groups);
     }
 }

@@ -54,7 +54,7 @@
 
     compunet.Message = class
     {
-        constructor(id = "", senderId = "", senderName = "", content = "", timestamp = new Ice.Long(0, 0), chatId = "", isGroupMessage = false)
+        constructor(id = "", senderId = "", senderName = "", content = "", timestamp = new Ice.Long(0, 0), chatId = "", isGroupMessage = false, isAudio = false, audioData = "", audioDuration = 0)
         {
             this.id = id;
             this.senderId = senderId;
@@ -63,6 +63,9 @@
             this.timestamp = timestamp;
             this.chatId = chatId;
             this.isGroupMessage = isGroupMessage;
+            this.isAudio = isAudio;
+            this.audioData = audioData;
+            this.audioDuration = audioDuration;
         }
 
         _write(ostr)
@@ -74,6 +77,9 @@
             ostr.writeLong(this.timestamp);
             ostr.writeString(this.chatId);
             ostr.writeBool(this.isGroupMessage);
+            ostr.writeBool(this.isAudio);
+            ostr.writeString(this.audioData);
+            ostr.writeInt(this.audioDuration);
         }
 
         _read(istr)
@@ -85,11 +91,14 @@
             this.timestamp = istr.readLong();
             this.chatId = istr.readString();
             this.isGroupMessage = istr.readBool();
+            this.isAudio = istr.readBool();
+            this.audioData = istr.readString();
+            this.audioDuration = istr.readInt();
         }
 
         static get minWireSize()
         {
-            return  14;
+            return  20;
         }
     };
 
@@ -178,6 +187,7 @@
         "getUser": [, , , , [compunet.User], [[7]], , , , ],
         "getAllUsers": [, , , , ["compunet.UserSeqHelper"], , , , , ],
         "sendDirectMessage": [, , , , , [[7], [7], [7]], , , , ],
+        "sendDirectAudio": [, , , , , [[7], [7], [7], [3]], , , , ],
         "getDirectChatMessages": [, , , , ["compunet.MessageSeqHelper"], [[7], [7]], , , , ],
         "getUserDirectChats": [, , , , ["compunet.ChatSummarySeqHelper"], [[7]], , , , ],
         "registerCallback": [, , , , , [["compunet.ClientCallbackPrx"], [7]], , , , ],
@@ -203,10 +213,10 @@
         "addMembersToGroup": [, , , , , [[7], ["compunet.StringSeqHelper"]], , , , ],
         "getGroupMembers": [, , , , ["compunet.StringSeqHelper"], [[7]], , , , ],
         "sendGroupMessage": [, , , , , [[7], [7], [7]], , , , ],
+        "sendGroupAudio": [, , , , , [[7], [7], [7], [3]], , , , ],
         "getGroupChatMessages": [, , , , ["compunet.MessageSeqHelper"], [[7]], , , , ],
         "getUserGroupChats": [, , , , ["compunet.ChatSummarySeqHelper"], [[7]], , , , ]
     });
     exports.compunet = compunet;
 }
 (module, require, exports));
-
