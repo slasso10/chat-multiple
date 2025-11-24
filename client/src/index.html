@@ -17,8 +17,9 @@
             </div>
             
             <div class="sidebar-actions">
-                <button id="btn-new-group" class="btn-action">+ Nuevo Grupo</button>
-                <button id="btn-refresh-chats" class="btn-action">🔄 Actualizar</button>
+                <button id="btn-new-direct-chat" class="btn-action">💬 Chat Directo</button>
+                <button id="btn-new-group" class="btn-action">👥 Nuevo Grupo</button>
+                <button id="btn-refresh-chats" class="btn-action" style="grid-column: 1 / -1;">🔄 Actualizar</button>
             </div>
             
             <div class="chat-list" id="chat-list">
@@ -40,7 +41,7 @@
             </div>
             
             <div class="message-input-container">
-                <button id="btn-record-audio" class="btn-record" title="Grabar nota de voz">
+                <button id="btn-record-audio" class="btn-record" title="Grabar nota de voz" disabled>
                     🎤
                 </button>
                 <input 
@@ -76,6 +77,28 @@
             <div class="modal-footer">
                 <button id="btn-cancel-group" class="btn-secondary">Cancelar</button>
                 <button id="btn-create-group" class="btn-primary">Crear Grupo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para iniciar chat directo -->
+    <div id="modal-new-direct-chat" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Iniciar Chat Directo</h3>
+                <button class="modal-close" id="modal-close-direct-chat">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Selecciona un usuario:</label>
+                    <div id="users-list-direct-chat" class="users-list">
+                        <!-- Lista de usuarios disponibles -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-direct-chat" class="btn-secondary">Cancelar</button>
+                <button id="btn-start-direct-chat" class="btn-primary">Iniciar Chat</button>
             </div>
         </div>
     </div>

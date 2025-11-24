@@ -6,7 +6,7 @@ const audioManager = require('./AudioManager')
 class ChatUIController {
     constructor() {
         this.elements = {};
-        this.isrecording = false;
+        this.isRecording = false;
         this.iceManager = null;
     }
 
@@ -25,50 +25,97 @@ class ChatUIController {
             chatType: document.getElementById('chat-type'),
             currentUserName: document.getElementById('current-user-name'),
             btnNewGroup: document.getElementById('btn-new-group'),
+            btnNewDirectChat: document.getElementById('btn-new-direct-chat'),
             btnRefreshChats: document.getElementById('btn-refresh-chats'),
             modalNewGroup: document.getElementById('modal-new-group'),
+            modalNewDirectChat: document.getElementById('modal-new-direct-chat'),
             modalClose: document.getElementById('modal-close'),
+            modalCloseDirectChat: document.getElementById('modal-close-direct-chat'),
             btnCancelGroup: document.getElementById('btn-cancel-group'),
+            btnCancelDirectChat: document.getElementById('btn-cancel-direct-chat'),
             btnCreateGroup: document.getElementById('btn-create-group'),
+            btnStartDirectChat: document.getElementById('btn-start-direct-chat'),
             groupNameInput: document.getElementById('group-name'),
             usersList: document.getElementById('users-list'),
+            usersListDirectChat: document.getElementById('users-list-direct-chat'),
             loading: document.getElementById('loading'),
             modalLogin: document.getElementById('modal-login'),
             loginNameInput: document.getElementById('login-name'),
-            btnLogin: document.getElementById('btn-login')
+            btnLogin: document.getElementById('btn-login'),
+            btnRecordAudio: document.getElementById('btn-record-audio')
         };
 
-        
         this.updateUserInfo();
     }
 
     attachEventListeners() {
         // Enviar mensaje
-        this.elements.btnSendMessage.addEventListener('click', () => this.handleSendMessage());
-        this.elements.messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.handleSendMessage();
-            }
-        });
+        if (this.elements.btnSendMessage) {
+            this.elements.btnSendMessage.addEventListener('click', () => this.handleSendMessage());
+        }
+        
+        if (this.elements.messageInput) {
+            this.elements.messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleSendMessage();
+                }
+            });
+        }
 
         // Actualizar chats
-        this.elements.btnRefreshChats.addEventListener('click', () => this.handleRefreshChats());
+        if (this.elements.btnRefreshChats) {
+            this.elements.btnRefreshChats.addEventListener('click', () => this.handleRefreshChats());
+        }
 
         // Modal de nuevo grupo
-        this.elements.btnNewGroup.addEventListener('click', () => this.showNewGroupModal());
-        this.elements.modalClose.addEventListener('click', () => this.hideNewGroupModal());
-        this.elements.btnCancelGroup.addEventListener('click', () => this.hideNewGroupModal());
-        this.elements.btnCreateGroup.addEventListener('click', () => this.handleCreateGroup());
+        if (this.elements.btnNewGroup) {
+            this.elements.btnNewGroup.addEventListener('click', () => this.showNewGroupModal());
+        }
+        if (this.elements.modalClose) {
+            this.elements.modalClose.addEventListener('click', () => this.hideNewGroupModal());
+        }
+        if (this.elements.btnCancelGroup) {
+            this.elements.btnCancelGroup.addEventListener('click', () => this.hideNewGroupModal());
+        }
+        if (this.elements.btnCreateGroup) {
+            this.elements.btnCreateGroup.addEventListener('click', () => this.handleCreateGroup());
+        }
 
-        // Cerrar modal al hacer click fuera
-        this.elements.modalNewGroup.addEventListener('click', (e) => {
-            if (e.target === this.elements.modalNewGroup) {
-                this.hideNewGroupModal();
-            }
-        });
+        // Modal de nuevo chat directo
+        if (this.elements.btnNewDirectChat) {
+            this.elements.btnNewDirectChat.addEventListener('click', () => this.showNewDirectChatModal());
+        }
+        if (this.elements.modalCloseDirectChat) {
+            this.elements.modalCloseDirectChat.addEventListener('click', () => this.hideNewDirectChatModal());
+        }
+        if (this.elements.btnCancelDirectChat) {
+            this.elements.btnCancelDirectChat.addEventListener('click', () => this.hideNewDirectChatModal());
+        }
+        if (this.elements.btnStartDirectChat) {
+            this.elements.btnStartDirectChat.addEventListener('click', () => this.handleStartDirectChat());
+        }
 
-        this.elements.btnRecordAudio = document.getElementById('btn-record-audio');
-        this.elements.btnRecordAudio.addEventListener('click', () => this.handleRecordAudio());
+        // Cerrar modales al hacer click fuera
+        if (this.elements.modalNewGroup) {
+            this.elements.modalNewGroup.addEventListener('click', (e) => {
+                if (e.target === this.elements.modalNewGroup) {
+                    this.hideNewGroupModal();
+                }
+            });
+        }
+
+        if (this.elements.modalNewDirectChat) {
+            this.elements.modalNewDirectChat.addEventListener('click', (e) => {
+                if (e.target === this.elements.modalNewDirectChat) {
+                    this.hideNewDirectChatModal();
+                }
+            });
+        }
+
+        // Botón de grabación de audio
+        if (this.elements.btnRecordAudio) {
+            this.elements.btnRecordAudio.addEventListener('click', () => this.handleRecordAudio());
+        }
     }
 
     updateUserInfo() {
@@ -93,7 +140,7 @@ class ChatUIController {
             this.elements.chatList.innerHTML = `
                 <div style="padding: 20px; text-align: center; color: #667781;">
                     No tienes chats aún.<br>
-                    Crea un grupo para empezar.
+                    Inicia un chat directo o crea un grupo.
                 </div>
             `;
             return;
@@ -120,10 +167,10 @@ class ChatUIController {
 
         div.innerHTML = `
             <div class="chat-item-header">
-                <span class="chat-item-name">${chat.chatName}${badge}</span>
+                <span class="chat-item-name">${this.escapeHtml(chat.chatName)}${badge}</span>
                 <span class="chat-item-time">${time}</span>
             </div>
-            <div class="chat-item-preview">${chat.lastMessageContent}</div>
+            <div class="chat-item-preview">${this.escapeHtml(chat.lastMessageContent)}</div>
         `;
 
         div.addEventListener('click', () => this.handleChatClick(chat));
@@ -158,8 +205,6 @@ class ChatUIController {
     // === Renderizado de mensajes ===
 
     renderMessages() {
-        
-
         const messages = chatState.getActiveMessages();
         const activeChat = chatState.getActiveChat();
         
@@ -184,8 +229,6 @@ class ChatUIController {
             this.elements.messagesContainer.appendChild(messageElement);
         });
 
-       
-
         // Scroll hacia abajo
         this.scrollToBottom();
     }
@@ -193,20 +236,19 @@ class ChatUIController {
     displayNewMessage(message) {
         const activeChat = chatState.getActiveChat();
         
-        // Doble verificación: solo mostrar si el chat del mensaje es el que estamos viendo
-        // (Aunque ClientCallbackI ya hizo esta comprobación, es buena práctica)
+        if (!activeChat) return;
+
+        // Verificar si el mensaje pertenece al chat activo
         const isRelated = (message.isGroupMessage && message.chatId === activeChat.id) ||
                           (!message.isGroupMessage && (message.senderId === activeChat.id || message.chatId === activeChat.id));
 
         if (!isRelated) return;
         
-        // 1. Crear el elemento DOM del mensaje
+        // Crear y añadir el elemento DOM del mensaje
         const messageElement = this.createMessageElement(message);
-        
-        // 2. Añadirlo al contenedor
         this.elements.messagesContainer.appendChild(messageElement);
         
-        // 3. Desplazar al final para ver el nuevo mensaje
+        // Desplazar al final
         this.scrollToBottom();
     }
 
@@ -216,15 +258,45 @@ class ChatUIController {
         div.className = `message ${isSent ? 'sent' : 'received'}`;
 
         const time = chatState.formatTimestamp(message.timestamp);
-        const showSender = !isSent && chatState.getActiveChat().isGroup;
+        const showSender = !isSent && chatState.getActiveChat()?.isGroup;
+
+        let contentHTML;
+        
+        if (message.isAudio) {
+            // Es una nota de voz
+            contentHTML = `
+                <div class="audio-message">
+                    <button class="audio-play-btn" data-audio="${message.audioData}">▶️</button>
+                    <span class="audio-duration">${message.audioDuration}s</span>
+                </div>
+            `;
+        } else {
+            // Es texto normal
+            contentHTML = `<div class="message-content">${this.escapeHtml(message.content)}</div>`;
+        }
 
         div.innerHTML = `
             <div class="message-bubble">
-                ${showSender ? `<div class="message-sender">${message.senderName}</div>` : ''}
-                <div class="message-content">${this.escapeHtml(message.content)}</div>
+                ${showSender ? `<div class="message-sender">${this.escapeHtml(message.senderName)}</div>` : ''}
+                ${contentHTML}
                 <div class="message-time">${time}</div>
             </div>
         `;
+
+        // Si es audio, agregar evento para reproducir
+        if (message.isAudio) {
+            const playBtn = div.querySelector('.audio-play-btn');
+            playBtn.addEventListener('click', async () => {
+                try {
+                    playBtn.textContent = '⏸️';
+                    await audioManager.playAudio(message.audioData);
+                    playBtn.textContent = '▶️';
+                } catch (error) {
+                    console.error('Error al reproducir audio:', error);
+                    playBtn.textContent = '▶️';
+                }
+            });
+        }
 
         return div;
     }
@@ -261,14 +333,9 @@ class ChatUIController {
             // Limpiar input
             this.elements.messageInput.value = '';
             
-            // Recargar mensajes del chat activo
-            await messageReceiver.refreshActiveChat();
+            console.log('✅ Mensaje enviado, esperando callback del servidor...');
             
-            // Re-renderizar mensajes
-            this.renderMessages();
-            
-            // Actualizar lista de chats
-            await this.handleRefreshChats();
+            // NO refrescamos manualmente, el callback lo hará automáticamente
             
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
@@ -291,7 +358,7 @@ class ChatUIController {
 
     async showNewGroupModal() {
         try {
-            console.log('Botón Nuevo Grupo presionado. Intentando cargar usuarios...'); // <--- AÑADE ESTO
+            console.log('Botón Nuevo Grupo presionado. Intentando cargar usuarios...');
             // Cargar usuarios disponibles
             await messageReceiver.loadAllUsers();
             const users = chatState.getUsersExceptCurrent();
@@ -303,7 +370,7 @@ class ChatUIController {
                 label.className = 'user-checkbox';
                 label.innerHTML = `
                     <input type="checkbox" value="${user.id}">
-                    <span>${user.name} (${user.id})</span>
+                    <span>${this.escapeHtml(user.name)} (${this.escapeHtml(user.id)})</span>
                 `;
                 this.elements.usersList.appendChild(label);
             });
@@ -353,11 +420,98 @@ class ChatUIController {
             
             this.hideLoading();
             
-            alert('Grupo creado exitosamente');
+            console.log('✅ Grupo creado exitosamente');
         } catch (error) {
             console.error('Error al crear grupo:', error);
             this.hideLoading();
             alert('Error al crear el grupo');
+        }
+    }
+
+    // === Modal de nuevo chat directo ===
+
+    async showNewDirectChatModal() {
+        if (!this.elements.usersListDirectChat || !this.elements.modalNewDirectChat) {
+            console.error('Elementos del modal de chat directo no encontrados');
+            alert('Error: Modal de chat directo no disponible. Verifica que el HTML tenga todos los elementos.');
+            return;
+        }
+
+        try {
+            console.log('Botón Nuevo Chat Directo presionado...');
+            // Cargar usuarios disponibles
+            await messageReceiver.loadAllUsers();
+            const users = chatState.getUsersExceptCurrent();
+            
+            // Renderizar lista de usuarios (radio buttons para seleccionar solo uno)
+            this.elements.usersListDirectChat.innerHTML = '';
+            users.forEach(user => {
+                const label = document.createElement('label');
+                label.className = 'user-radio';
+                label.innerHTML = `
+                    <input type="radio" name="direct-chat-user" value="${user.id}">
+                    <span>${this.escapeHtml(user.name)}</span>
+                `;
+                this.elements.usersListDirectChat.appendChild(label);
+            });
+            
+            // Mostrar modal
+            this.elements.modalNewDirectChat.classList.add('show');
+        } catch (error) {
+            console.error('Error al abrir modal de chat directo:', error);
+            alert('Error al cargar usuarios');
+        }
+    }
+
+    hideNewDirectChatModal() {
+        if (this.elements.modalNewDirectChat) {
+            this.elements.modalNewDirectChat.classList.remove('show');
+        }
+    }
+
+    async handleStartDirectChat() {
+        if (!this.elements.usersListDirectChat) {
+            alert('Error: Lista de usuarios no disponible');
+            return;
+        }
+
+        // Obtener usuario seleccionado
+        const selectedRadio = this.elements.usersListDirectChat.querySelector('input[type="radio"]:checked');
+        
+        if (!selectedRadio) {
+            alert('Debes seleccionar un usuario');
+            return;
+        }
+
+        const otherUserId = selectedRadio.value;
+        const otherUser = chatState.getAllUsers().find(u => u.id === otherUserId);
+        
+        if (!otherUser) {
+            alert('Usuario no encontrado');
+            return;
+        }
+
+        try {
+            this.hideNewDirectChatModal();
+            
+            // Establecer el chat directo como activo
+            chatState.setActiveChat(otherUserId, otherUser.name, false);
+            
+            // Cargar mensajes existentes (si los hay)
+            await messageReceiver.loadChatMessages(otherUserId, false);
+            
+            // Actualizar UI
+            this.updateChatHeader();
+            this.renderMessages();
+            this.enableMessageInput();
+            
+            // Actualizar lista de chats
+            await this.handleRefreshChats();
+            
+            console.log(`✅ Chat directo iniciado con ${otherUser.name}`);
+        } catch (error) {
+            console.error('Error al iniciar chat directo:', error);
+            alert('Error al iniciar el chat directo');
         }
     }
 
@@ -379,12 +533,14 @@ class ChatUIController {
     enableMessageInput() {
         this.elements.messageInput.disabled = false;
         this.elements.btnSendMessage.disabled = false;
+        this.elements.btnRecordAudio.disabled = false;
         this.elements.messageInput.focus();
     }
 
     disableMessageInput() {
         this.elements.messageInput.disabled = true;
         this.elements.btnSendMessage.disabled = true;
+        this.elements.btnRecordAudio.disabled = true;
     }
 
     showLoading(message = 'Cargando...') {
@@ -431,10 +587,7 @@ class ChatUIController {
                     
                     await messageSender.sendAudio(audioBlob);
                     
-                    // Recargar mensajes
-                    await messageReceiver.refreshActiveChat();
-                    this.renderMessages();
-                    await this.handleRefreshChats();
+                    console.log('✅ Audio enviado, esperando callback...');
                     
                     this.hideLoading();
                 }
@@ -445,57 +598,6 @@ class ChatUIController {
                 this.hideLoading();
             }
         }
-    }
-
-    // Actualizar createMessageElement para soportar audio:
-
-    createMessageElement(message) {
-        const div = document.createElement('div');
-        const isSent = message.senderId === chatState.getCurrentUserId();
-        div.className = `message ${isSent ? 'sent' : 'received'}`;
-
-        const time = chatState.formatTimestamp(message.timestamp);
-        const showSender = !isSent && chatState.getActiveChat().isGroup;
-
-        let contentHTML;
-        
-        if (message.isAudio) {
-            // Es una nota de voz
-            contentHTML = `
-                <div class="audio-message">
-                    <button class="audio-play-btn" data-audio="${message.audioData}">▶️</button>
-                    <span class="audio-duration">${message.audioDuration}s</span>
-                </div>
-            `;
-        } else {
-            // Es texto normal
-            contentHTML = `<div class="message-content">${this.escapeHtml(message.content)}</div>`;
-        }
-
-        div.innerHTML = `
-            <div class="message-bubble">
-                ${showSender ? `<div class="message-sender">${message.senderName}</div>` : ''}
-                ${contentHTML}
-                <div class="message-time">${time}</div>
-            </div>
-        `;
-
-        // Si es audio, agregar evento para reproducir
-        if (message.isAudio) {
-            const playBtn = div.querySelector('.audio-play-btn');
-            playBtn.addEventListener('click', async () => {
-                try {
-                    playBtn.textContent = '⏸️';
-                    await audioManager.playAudio(message.audioData);
-                    playBtn.textContent = '▶️';
-                } catch (error) {
-                    console.error('Error al reproducir audio:', error);
-                    playBtn.textContent = '▶️';
-                }
-            });
-        }
-
-        return div;
     }
 }
 

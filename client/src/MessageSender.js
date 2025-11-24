@@ -3,14 +3,13 @@ const audioManager = require('./AudioManager');
 
 class MessageSender {
 
-    constructor(iceManagerInstance) {
+    constructor() {
         this.iceManager = null;
     }
 
     setIceManager(iceManagerInstance) {
         this.iceManager = iceManagerInstance;
     }
-
 
     async sendMessage(content) {
         const activeChat = chatState.getActiveChat();
@@ -28,10 +27,10 @@ class MessageSender {
         try {
             if (activeChat.isGroup) {
                 // Enviar mensaje a grupo
-                await iceManager.sendGroupMessage(userId, activeChat.id, content.trim());
+                await this.iceManager.sendGroupMessage(userId, activeChat.id, content.trim());
             } else {
                 // Enviar mensaje directo
-                await iceManager.sendDirectMessage(userId, activeChat.id, content.trim());
+                await this.iceManager.sendDirectMessage(userId, activeChat.id, content.trim());
             }
 
             console.log(`Mensaje enviado exitosamente a ${activeChat.name}`);
@@ -50,7 +49,7 @@ class MessageSender {
         const fromUserId = chatState.getCurrentUserId();
 
         try {
-            await iceManager.sendDirectMessage(fromUserId, toUserId, content.trim());
+            await this.iceManager.sendDirectMessage(fromUserId, toUserId, content.trim());
             console.log(`Mensaje directo enviado a ${toUserId}`);
             return true;
         } catch (error) {
@@ -67,7 +66,7 @@ class MessageSender {
         const fromUserId = chatState.getCurrentUserId();
 
         try {
-            await iceManager.sendGroupMessage(fromUserId, groupId, content.trim());
+            await this.iceManager.sendGroupMessage(fromUserId, groupId, content.trim());
             console.log(`Mensaje enviado al grupo ${groupId}`);
             return true;
         } catch (error) {
@@ -75,6 +74,7 @@ class MessageSender {
             throw error;
         }
     }
+    
     async sendAudio(audioBlob) {
         const activeChat = chatState.getActiveChat();
         
@@ -92,9 +92,9 @@ class MessageSender {
             const duration = await audioManager.getAudioDuration(audioBlob);
 
             if (activeChat.isGroup) {
-                await iceManager.sendGroupAudio(userId, activeChat.id, base64Audio, duration);
+                await this.iceManager.sendGroupAudio(userId, activeChat.id, base64Audio, duration);
             } else {
-                await iceManager.sendDirectAudio(userId, activeChat.id, base64Audio, duration);
+                await this.iceManager.sendDirectAudio(userId, activeChat.id, base64Audio, duration);
             }
 
             console.log(`Nota de voz enviada exitosamente (${duration}s)`);
