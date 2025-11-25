@@ -42,25 +42,23 @@ public class ChatCore {
         System.out.println("❌ Cliente desregistrado para callbacks: " + userId);
     }
 
-    private void notifyClient(String userId, Message message) {
+    public void notifyClient(String userId, Message message) {
         ClientCallbackPrx clientPrx = activeClients.get(userId);
+
         if (clientPrx != null) {
+            // Log para debug (muestra la cadena de proxy, que ahora debe ser más larga)
+            System.out.println("? Intentando notificar a " + userId + " con proxy: " + clientPrx.toString());
+
             try {
-                // Imprimir información de debug
-                System.out.println("🔔 Intentando notificar a " + userId + " con proxy: " + clientPrx);
-
-                clientPrx.onNewMessage(message);
-
-                System.out.println("📨 Notificación enviada a " + userId + " sobre mensaje " + message.id);
-            } catch (com.zeroc.Ice.CommunicatorDestroyedException e) {
-                System.err.println("⚠️ Comunicación perdida con el cliente " + userId + ". Desregistrando.");
-                activeClients.remove(userId);
+                // 🚨 CORRECCIÓN 2: Usar ice_oneway() para que la llamada no bloquee el servidor
+                clientPrx.ice_oneway().onNewMessage(message);
+                System.out.println("✅ Notificación enviada a: " + userId);
             } catch (Exception e) {
-                System.err.println("❌ Error al notificar al cliente " + userId + ": " + e.getMessage());
-                e.printStackTrace(); // Imprimir stack trace completo
+                System.err.println("? Error al notificar al cliente " + userId + ": " + e.getMessage());
+                e.printStackTrace();
             }
         } else {
-            System.out.println("⚠️ Cliente " + userId + " no tiene callback registrado");
+            System.out.println("⚠️ Cliente no activo para callbacks: " + userId);
         }
     }
 

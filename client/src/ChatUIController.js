@@ -236,13 +236,15 @@ class ChatUIController {
     displayNewMessage(message) {
         const activeChat = chatState.getActiveChat();
         
-        if (!activeChat) return;
+        // 🚨 CORRECCIÓN CRÍTICA: Solo verificar si hay un chat activo.
+        // Si el ClientCallback llamó a esta función, el mensaje YA ES RELEVANTE.
+        if (!activeChat) {
+            console.warn('Intento de mostrar mensaje sin chat activo.');
+            return; 
+        }
 
-        // Verificar si el mensaje pertenece al chat activo
-        const isRelated = (message.isGroupMessage && message.chatId === activeChat.id) ||
-                          (!message.isGroupMessage && (message.senderId === activeChat.id || message.chatId === activeChat.id));
-
-        if (!isRelated) return;
+        // NO se necesita el bloque 'isRelated'. Se elimina.
+        // if (!isRelated) return;
         
         // Crear y añadir el elemento DOM del mensaje
         const messageElement = this.createMessageElement(message);
@@ -308,7 +310,11 @@ class ChatUIController {
     }
 
     scrollToBottom() {
-        this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+        setTimeout(() => {
+            if (this.elements.messagesContainer) {
+                this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+            }
+        }, 0);
     }
 
     showEmptyState() {
@@ -323,26 +329,46 @@ class ChatUIController {
 
     async handleSendMessage() {
         const content = this.elements.messageInput.value.trim();
-        
         if (!content) return;
 
+        // Mostrar indicador de "enviando"
+        this.showLoading('Enviando mensaje...');
+        
+        // 1. Crear el objeto de mensaje local para mostrarlo INMEDIATAMENTE
+        const activeChat = chatState.getActiveChat();
+        const currentUser = { 
+            id: chatState.getCurrentUserId(), 
+            name: chatState.getCurrentUserName() 
+        };
+
+        const tempMessage = {
+            id: 'local_' + Date.now(), // ID temporal para el estado
+            senderId: currentUser.id,
+            senderName: currentUser.name,
+            content: content,
+            timestamp: Date.now(),
+            chatId: activeChat.id,
+            isGroupMessage: activeChat.isGroup,
+            isAudio: false
+        };
+
+        // 2. Limpiar el input y mostrar el mensaje en la UI y estado
+        this.elements.messageInput.value = '';
+        chatState.addMessage(tempMessage); // Añadir al estado local
+        this.displayNewMessage(tempMessage); // Mostrar en la UI
+        this.hideLoading(); // Quitar indicador de carga inmediatamente
+
         try {
-            // Enviar mensaje
+            // 3. Enviar al servidor en segundo plano
             await messageSender.sendMessage(content);
-            
-            // Limpiar input
-            this.elements.messageInput.value = '';
-            
-            console.log('✅ Mensaje enviado, esperando callback del servidor...');
-            
-            // NO refrescamos manualmente, el callback lo hará automáticamente
-            
+            console.log('✅ Mensaje enviado al servidor (via RPC)');
+
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
-            alert('Error al enviar el mensaje');
+            alert('Hubo un error al enviar el mensaje. Revisa tu conexión.');
+            // Aquí podrías marcar el mensaje como "fallido" en la UI
         }
     }
-
     // === Actualización de chats ===
 
     async handleRefreshChats() {
