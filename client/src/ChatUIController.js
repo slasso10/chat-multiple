@@ -1,13 +1,16 @@
 const chatState = require('./ChatStateManager');
 const messageSender = require('./MessageSender');
 const messageReceiver = require('./MessageReceiver');
-const audioManager = require('./AudioManager')
+const audioManager = require('./AudioManager');
+const callManager = require('./CallManager');
 
 class ChatUIController {
     constructor() {
         this.elements = {};
         this.isRecording = false;
         this.iceManager = null;
+        this.isMuted = false;
+        this.remoteAudioElement = null;
     }
 
     setIceManager(iceManagerInstance) {
@@ -42,10 +45,25 @@ class ChatUIController {
             modalLogin: document.getElementById('modal-login'),
             loginNameInput: document.getElementById('login-name'),
             btnLogin: document.getElementById('btn-login'),
-            btnRecordAudio: document.getElementById('btn-record-audio')
+            btnRecordAudio: document.getElementById('btn-record-audio'),
+            btnStartCall: document.getElementById('btn-start-call'),
+            btnEndCall: document.getElementById('btn-end-call'),
+            btnToggleMute: document.getElementById('btn-toggle-mute'),
+            callStatus: document.getElementById('call-status'),
+            callControls: document.getElementById('call-controls')
         };
 
         this.updateUserInfo();
+        this.createRemoteAudioElement();
+    }
+
+    /**
+     * Crea elemento de audio para reproducir stream remoto
+     */
+    createRemoteAudioElement() {
+        this.remoteAudioElement = document.createElement('audio');
+        this.remoteAudioElement.autoplay = true;
+        document.body.appendChild(this.remoteAudioElement);
     }
 
     attachEventListeners() {
@@ -115,6 +133,19 @@ class ChatUIController {
         // Botón de grabación de audio
         if (this.elements.btnRecordAudio) {
             this.elements.btnRecordAudio.addEventListener('click', () => this.handleRecordAudio());
+        }
+
+        // 📞 Botones de llamada
+        if (this.elements.btnStartCall) {
+            this.elements.btnStartCall.addEventListener('click', () => this.handleStartCall());
+        }
+        
+        if (this.elements.btnEndCall) {
+            this.elements.btnEndCall.addEventListener('click', () => this.handleEndCall());
+        }
+        
+        if (this.elements.btnToggleMute) {
+            this.elements.btnToggleMute.addEventListener('click', () => this.handleToggleMute());
         }
     }
 
@@ -192,7 +223,10 @@ class ChatUIController {
             this.updateChatHeader();
             this.renderMessages();
             this.enableMessageInput();
-            this.renderChatList(); // Re-renderizar para actualizar selección
+            this.renderChatList();
+            
+            // Mostrar/ocultar botón de llamada
+            this.updateCallButtonVisibility();
             
             this.hideLoading();
         } catch (error) {
@@ -229,28 +263,20 @@ class ChatUIController {
             this.elements.messagesContainer.appendChild(messageElement);
         });
 
-        // Scroll hacia abajo
         this.scrollToBottom();
     }
 
     displayNewMessage(message) {
         const activeChat = chatState.getActiveChat();
         
-        // 🚨 CORRECCIÓN CRÍTICA: Solo verificar si hay un chat activo.
-        // Si el ClientCallback llamó a esta función, el mensaje YA ES RELEVANTE.
         if (!activeChat) {
             console.warn('Intento de mostrar mensaje sin chat activo.');
             return; 
         }
-
-        // NO se necesita el bloque 'isRelated'. Se elimina.
-        // if (!isRelated) return;
         
-        // Crear y añadir el elemento DOM del mensaje
         const messageElement = this.createMessageElement(message);
         this.elements.messagesContainer.appendChild(messageElement);
         
-        // Desplazar al final
         this.scrollToBottom();
     }
 
@@ -265,7 +291,6 @@ class ChatUIController {
         let contentHTML;
         
         if (message.isAudio) {
-            // Es una nota de voz
             contentHTML = `
                 <div class="audio-message">
                     <button class="audio-play-btn" data-audio="${message.audioData}">▶️</button>
@@ -273,7 +298,6 @@ class ChatUIController {
                 </div>
             `;
         } else {
-            // Es texto normal
             contentHTML = `<div class="message-content">${this.escapeHtml(message.content)}</div>`;
         }
 
@@ -285,7 +309,6 @@ class ChatUIController {
             </div>
         `;
 
-        // Si es audio, agregar evento para reproducir
         if (message.isAudio) {
             const playBtn = div.querySelector('.audio-play-btn');
             playBtn.addEventListener('click', async () => {
@@ -331,10 +354,8 @@ class ChatUIController {
         const content = this.elements.messageInput.value.trim();
         if (!content) return;
 
-        // Mostrar indicador de "enviando"
         this.showLoading('Enviando mensaje...');
         
-        // 1. Crear el objeto de mensaje local para mostrarlo INMEDIATAMENTE
         const activeChat = chatState.getActiveChat();
         const currentUser = { 
             id: chatState.getCurrentUserId(), 
@@ -342,7 +363,7 @@ class ChatUIController {
         };
 
         const tempMessage = {
-            id: 'local_' + Date.now(), // ID temporal para el estado
+            id: 'local_' + Date.now(),
             senderId: currentUser.id,
             senderName: currentUser.name,
             content: content,
@@ -352,23 +373,20 @@ class ChatUIController {
             isAudio: false
         };
 
-        // 2. Limpiar el input y mostrar el mensaje en la UI y estado
         this.elements.messageInput.value = '';
-        chatState.addMessage(tempMessage); // Añadir al estado local
-        this.displayNewMessage(tempMessage); // Mostrar en la UI
-        this.hideLoading(); // Quitar indicador de carga inmediatamente
+        chatState.addMessage(tempMessage);
+        this.displayNewMessage(tempMessage);
+        this.hideLoading();
 
         try {
-            // 3. Enviar al servidor en segundo plano
             await messageSender.sendMessage(content);
-            console.log('✅ Mensaje enviado al servidor (via RPC)');
-
+            console.log('✅ Mensaje enviado al servidor');
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
-            alert('Hubo un error al enviar el mensaje. Revisa tu conexión.');
-            // Aquí podrías marcar el mensaje como "fallido" en la UI
+            alert('Hubo un error al enviar el mensaje.');
         }
     }
+
     // === Actualización de chats ===
 
     async handleRefreshChats() {
@@ -384,12 +402,9 @@ class ChatUIController {
 
     async showNewGroupModal() {
         try {
-            console.log('Botón Nuevo Grupo presionado. Intentando cargar usuarios...');
-            // Cargar usuarios disponibles
             await messageReceiver.loadAllUsers();
             const users = chatState.getUsersExceptCurrent();
             
-            // Renderizar lista de usuarios
             this.elements.usersList.innerHTML = '';
             users.forEach(user => {
                 const label = document.createElement('label');
@@ -401,10 +416,7 @@ class ChatUIController {
                 this.elements.usersList.appendChild(label);
             });
             
-            // Limpiar campo de nombre
             this.elements.groupNameInput.value = '';
-            
-            // Mostrar modal
             this.elements.modalNewGroup.classList.add('show');
         } catch (error) {
             console.error('Error al abrir modal de grupo:', error);
@@ -424,7 +436,6 @@ class ChatUIController {
             return;
         }
 
-        // Obtener miembros seleccionados
         const checkboxes = this.elements.usersList.querySelectorAll('input[type="checkbox"]:checked');
         const memberIds = Array.from(checkboxes).map(cb => cb.value);
 
@@ -440,10 +451,7 @@ class ChatUIController {
             await this.iceManager.createGroup(ownerId, groupName, memberIds);
             
             this.hideNewGroupModal();
-            
-            // Actualizar lista de chats
             await this.handleRefreshChats();
-            
             this.hideLoading();
             
             console.log('✅ Grupo creado exitosamente');
@@ -458,18 +466,14 @@ class ChatUIController {
 
     async showNewDirectChatModal() {
         if (!this.elements.usersListDirectChat || !this.elements.modalNewDirectChat) {
-            console.error('Elementos del modal de chat directo no encontrados');
-            alert('Error: Modal de chat directo no disponible. Verifica que el HTML tenga todos los elementos.');
+            alert('Error: Modal de chat directo no disponible.');
             return;
         }
 
         try {
-            console.log('Botón Nuevo Chat Directo presionado...');
-            // Cargar usuarios disponibles
             await messageReceiver.loadAllUsers();
             const users = chatState.getUsersExceptCurrent();
             
-            // Renderizar lista de usuarios (radio buttons para seleccionar solo uno)
             this.elements.usersListDirectChat.innerHTML = '';
             users.forEach(user => {
                 const label = document.createElement('label');
@@ -481,7 +485,6 @@ class ChatUIController {
                 this.elements.usersListDirectChat.appendChild(label);
             });
             
-            // Mostrar modal
             this.elements.modalNewDirectChat.classList.add('show');
         } catch (error) {
             console.error('Error al abrir modal de chat directo:', error);
@@ -501,7 +504,6 @@ class ChatUIController {
             return;
         }
 
-        // Obtener usuario seleccionado
         const selectedRadio = this.elements.usersListDirectChat.querySelector('input[type="radio"]:checked');
         
         if (!selectedRadio) {
@@ -520,18 +522,14 @@ class ChatUIController {
         try {
             this.hideNewDirectChatModal();
             
-            // Establecer el chat directo como activo
             chatState.setActiveChat(otherUserId, otherUser.name, false);
-            
-            // Cargar mensajes existentes (si los hay)
             await messageReceiver.loadChatMessages(otherUserId, false);
             
-            // Actualizar UI
             this.updateChatHeader();
             this.renderMessages();
             this.enableMessageInput();
+            this.updateCallButtonVisibility();
             
-            // Actualizar lista de chats
             await this.handleRefreshChats();
             
             console.log(`✅ Chat directo iniciado con ${otherUser.name}`);
@@ -580,7 +578,6 @@ class ChatUIController {
 
     async handleRecordAudio() {
         if (!this.isRecording) {
-            // Iniciar grabación
             try {
                 await audioManager.initialize();
                 await audioManager.startRecording();
@@ -590,14 +587,11 @@ class ChatUIController {
                 this.elements.btnRecordAudio.classList.add('recording');
                 this.elements.messageInput.disabled = true;
                 this.elements.btnSendMessage.disabled = true;
-                
-                console.log('🎙️ Grabando...');
             } catch (error) {
                 console.error('Error al iniciar grabación:', error);
-                alert('No se pudo acceder al micrófono. Verifica los permisos.');
+                alert('No se pudo acceder al micrófono.');
             }
         } else {
-            // Detener y enviar
             try {
                 const audioBlob = await audioManager.stopRecording();
                 
@@ -607,22 +601,92 @@ class ChatUIController {
                 this.elements.messageInput.disabled = false;
                 this.elements.btnSendMessage.disabled = false;
                 
-                // Mostrar confirmación
                 if (confirm('¿Enviar nota de voz?')) {
                     this.showLoading('Enviando audio...');
-                    
                     await messageSender.sendAudio(audioBlob);
-                    
-                    console.log('✅ Audio enviado, esperando callback...');
-                    
                     this.hideLoading();
                 }
-                
             } catch (error) {
                 console.error('Error al enviar audio:', error);
                 alert('Error al enviar la nota de voz');
                 this.hideLoading();
             }
+        }
+    }
+
+    // === GESTIÓN DE LLAMADAS ===
+
+    updateCallButtonVisibility() {
+        const activeChat = chatState.getActiveChat();
+        
+        // Solo mostrar botón de llamada en chats directos
+        if (activeChat && !activeChat.isGroup) {
+            this.elements.btnStartCall.style.display = 'block';
+        } else {
+            this.elements.btnStartCall.style.display = 'none';
+        }
+    }
+
+    async handleStartCall() {
+        const activeChat = chatState.getActiveChat();
+        
+        if (!activeChat || activeChat.isGroup) {
+            alert('Solo puedes hacer llamadas en chats directos');
+            return;
+        }
+
+        try {
+            await callManager.startCall(activeChat.id, activeChat.name, true);
+            console.log('📞 Llamada iniciada');
+        } catch (error) {
+            console.error('Error al iniciar llamada:', error);
+            alert('No se pudo iniciar la llamada. Verifica los permisos del micrófono.');
+        }
+    }
+
+    handleEndCall() {
+        callManager.endCall();
+    }
+
+    handleToggleMute() {
+        this.isMuted = callManager.toggleMute();
+        this.elements.btnToggleMute.textContent = this.isMuted ? '🔇' : '🔊';
+    }
+
+    /**
+     * Actualiza la UI según el estado de la llamada
+     */
+    updateCallState(state, call) {
+        switch (state) {
+            case 'calling':
+                this.elements.callStatus.textContent = `Llamando a ${call.userName}...`;
+                this.elements.callControls.style.display = 'flex';
+                this.elements.btnStartCall.style.display = 'none';
+                break;
+                
+            case 'connected':
+                this.elements.callStatus.textContent = `En llamada con ${call.userName}`;
+                
+                // Reproducir audio remoto
+                const remoteStream = callManager.getRemoteStream();
+                if (remoteStream && this.remoteAudioElement) {
+                    this.remoteAudioElement.srcObject = remoteStream;
+                }
+                break;
+                
+            case 'ended':
+            case 'rejected':
+            case 'unavailable':
+                this.elements.callStatus.textContent = '';
+                this.elements.callControls.style.display = 'none';
+                this.updateCallButtonVisibility();
+                this.isMuted = false;
+                this.elements.btnToggleMute.textContent = '🔊';
+                
+                if (this.remoteAudioElement) {
+                    this.remoteAudioElement.srcObject = null;
+                }
+                break;
         }
     }
 }

@@ -30,8 +30,28 @@
         <!-- Área principal de chat -->
         <div class="chat-area">
             <div class="chat-header" id="chat-header">
-                <h3 id="chat-name">Selecciona un chat</h3>
-                <span id="chat-type" class="chat-type-badge"></span>
+                <div class="header-info">
+                    <h3 id="chat-name">Selecciona un chat</h3>
+                    <span id="chat-type" class="chat-type-badge"></span>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-start-call" class="btn-call" style="display: none;" title="Iniciar llamada">
+                        📞 Llamar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Controles de llamada -->
+            <div id="call-controls" class="call-controls" style="display: none;">
+                <div id="call-status" class="call-status"></div>
+                <div class="call-buttons">
+                    <button id="btn-toggle-mute" class="btn-call-control" title="Silenciar/Activar micrófono">
+                        🔊
+                    </button>
+                    <button id="btn-end-call" class="btn-call-control btn-end" title="Finalizar llamada">
+                        📞 Colgar
+                    </button>
+                </div>
             </div>
             
             <div class="messages-container" id="messages-container">

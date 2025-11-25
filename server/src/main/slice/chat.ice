@@ -32,11 +32,6 @@ module compunet {
     sequence<ChatSummary> ChatSummarySeq;
     sequence<User> UserSeq;
 
-    // Callback del cliente para actualizaciones en tiempo real
-    interface ClientCallback {
-        void onNewMessage(Message msg);
-        void onNewGroup(ChatSummary chat);
-    };
 
     // Interfaz para gestión de mensajes directos
     interface ChatService {
@@ -54,9 +49,6 @@ module compunet {
         MessageSeq getDirectChatMessages(string userId, string otherUserId);
         ChatSummarySeq getUserDirectChats(string userId);
         
-        // Registro de callbacks
-        void registerCallback(ClientCallback* proxy, string userId);
-        void unregisterCallback(string userId);
     };
 
     // Interfaz para gestión de grupos

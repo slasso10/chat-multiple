@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.compunet'
-version = '1.0.0'
+version = '2.0.0'
 sourceCompatibility = '11'
 
 repositories {
@@ -15,8 +15,20 @@ repositories {
 }
 
 dependencies {
+    // ZeroC Ice para RPC
     implementation 'com.zeroc:ice:3.7.10'
     implementation 'com.zeroc:glacier2:3.7.10'
+    
+    // WebSocket para notificaciones en tiempo real
+    implementation 'org.java-websocket:Java-WebSocket:1.5.6'
+    
+    // Gson para serialización JSON
+    implementation 'com.google.code.gson:gson:2.10.1'
+    
+    // SLF4J para logging
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+    
+    // Testing
     testImplementation 'junit:junit:4.13.2'
 }
 
@@ -64,3 +76,10 @@ task runServer(type: JavaExec) {
     mainClass = 'com.compunet.server.ServerMain'
     standardInput = System.in
 }
+
+// Tarea para limpiar archivos generados
+task cleanGenerated(type: Delete) {
+    delete generatedSourcesDir
+}
+
+clean.dependsOn cleanGenerated

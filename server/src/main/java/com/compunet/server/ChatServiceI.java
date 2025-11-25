@@ -84,30 +84,4 @@ public class ChatServiceI implements ChatService {
         }
     }
 
-    @Override
-    public void registerCallback(ClientCallbackPrx proxy, String userId, Current current) {
-        try {
-            // 🚨 CORRECCIÓN 1: Asociar el proxy al canal de comunicación actual (WebSocket)
-            // Esto convierte el proxy genérico en un proxy que usa la conexión de entrada
-            // (current.con)
-            ClientCallbackPrx fixedProxy = (ClientCallbackPrx) proxy.ice_fixed(current.con);
-
-            // Llama a ChatCore para guardar el proxy del cliente FIJO
-            chatCore.registerClientCallback(userId, fixedProxy);
-        } catch (Exception e) {
-            System.err.println("Error al registrar callback para " + userId + ": " + e.getMessage());
-            throw e;
-        }
-    }
-
-    @Override
-    public void unregisterCallback(String userId, Current current) {
-        try {
-            // Llama a ChatCore para eliminar el proxy
-            chatCore.unregisterClientCallback(userId);
-        } catch (Exception e) {
-            System.err.println("Error al desregistrar callback para " + userId + ": " + e.getMessage());
-            throw e;
-        }
-    }
 }

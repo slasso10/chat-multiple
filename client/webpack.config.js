@@ -10,7 +10,7 @@ module.exports = {
   },
 
   module: {
-    unknownContextCritical: false,   // ← lo incluimos aquí
+    unknownContextCritical: false,   // Para Ice.js
     rules: [
       {
         test: /\.css$/i,
@@ -35,8 +35,9 @@ module.exports = {
       directory: path.join(__dirname, 'dist')
     },
     compress: true,
-    port: 8080,
-    hot: true
+    port: 9000,  // ← CAMBIADO a 9000 para evitar conflicto con WebSocket (8080)
+    hot: true,
+    open: true   // Abre automáticamente el navegador
   },
 
   resolve: {
@@ -49,7 +50,13 @@ module.exports = {
       path: false,
       fs: false,
       net: false,
-      tls: false
+      tls: false,
+      http: false,    // Agregado
+      https: false,   // Agregado
+      os: false,      // Agregado
+      url: false,     // Agregado
+      zlib: false,    // Agregado
+      assert: false   // Agregado
     }
   },
 
@@ -63,5 +70,6 @@ module.exports = {
     warnings: false
   },
 
-  mode: 'development'
+  mode: 'development',
+  devtool: 'source-map'  // Para debugging
 };

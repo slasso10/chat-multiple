@@ -12,10 +12,11 @@ public class ChatCore {
     private final Map<String, List<Message>> directMessages = new ConcurrentHashMap<>();
     private final Map<String, List<Message>> groupMessages = new ConcurrentHashMap<>();
 
-    private final Map<String, ClientCallbackPrx> activeClients = new ConcurrentHashMap<>();
-
     private final AtomicLong messageIdCounter = new AtomicLong(0);
     private final AtomicLong groupIdCounter = new AtomicLong(0);
+
+    // 🌐 Handler de WebSocket para notificaciones en tiempo real
+    private WebSocketHandler webSocketHandler;
 
     // Clase interna para representar un grupo
     public static class Group {
@@ -32,33 +33,31 @@ public class ChatCore {
         }
     }
 
-    public void registerClientCallback(String userId, ClientCallbackPrx clientPrx) {
-        activeClients.put(userId, clientPrx);
-        System.out.println("✅ Cliente registrado para callbacks: " + userId);
+    /**
+     * Establece el handler de WebSocket para notificaciones
+     */
+    public void setWebSocketHandler(WebSocketHandler handler) {
+        this.webSocketHandler = handler;
+        System.out.println("✅ WebSocketHandler conectado a ChatCore");
     }
 
-    public void unregisterClientCallback(String userId) {
-        activeClients.remove(userId);
-        System.out.println("❌ Cliente desregistrado para callbacks: " + userId);
-    }
-
-    public void notifyClient(String userId, Message message) {
-        ClientCallbackPrx clientPrx = activeClients.get(userId);
-
-        if (clientPrx != null) {
-            // Log para debug (muestra la cadena de proxy, que ahora debe ser más larga)
-            System.out.println("? Intentando notificar a " + userId + " con proxy: " + clientPrx.toString());
-
-            try {
-                // 🚨 CORRECCIÓN 2: Usar ice_oneway() para que la llamada no bloquee el servidor
-                clientPrx.ice_oneway().onNewMessage(message);
-                System.out.println("✅ Notificación enviada a: " + userId);
-            } catch (Exception e) {
-                System.err.println("? Error al notificar al cliente " + userId + ": " + e.getMessage());
-                e.printStackTrace();
-            }
+    /**
+     * Notifica a un usuario sobre un nuevo mensaje
+     */
+    private void notifyClient(String userId, Message message) {
+        if (webSocketHandler != null) {
+            webSocketHandler.notifyNewMessage(userId, message);
         } else {
-            System.out.println("⚠️ Cliente no activo para callbacks: " + userId);
+            System.out.println("⚠️ WebSocketHandler no inicializado");
+        }
+    }
+
+    /**
+     * Notifica a un usuario sobre un nuevo grupo
+     */
+    private void notifyNewGroup(String userId, ChatSummary chatSummary) {
+        if (webSocketHandler != null) {
+            webSocketHandler.notifyNewGroup(userId, chatSummary);
         }
     }
 
@@ -107,9 +106,8 @@ public class ChatCore {
         directMessages.computeIfAbsent(chatKey, k -> new ArrayList<>()).add(message);
         System.out.println("💬 Mensaje directo enviado de " + fromUserId + " a " + toUserId);
 
-        // 🔥 NOTIFICAR A AMBOS USUARIOS (remitente Y destinatario)
-        notifyClient(toUserId, message); // Notificar al receptor
-        notifyClient(fromUserId, message); // Notificar al remitente también
+        // 🔥 NOTIFICAR SOLO AL RECEPTOR (el emisor ya mostró el mensaje localmente)
+        notifyClient(toUserId, message);
     }
 
     public void sendDirectAudio(String fromUserId, String toUserId, String audioData, int duration) {
@@ -135,9 +133,8 @@ public class ChatCore {
         System.out.println(
                 "🎤 Audio directo enviado de " + fromUserId + " a " + toUserId + ". Duración: " + duration + "s");
 
-        // 🔥 NOTIFICAR A AMBOS
+        // 🔥 NOTIFICAR SOLO AL RECEPTOR
         notifyClient(toUserId, message);
-        notifyClient(fromUserId, message);
     }
 
     public List<Message> getDirectChatMessages(String userId, String otherUserId) {
@@ -201,6 +198,21 @@ public class ChatCore {
         groups.put(groupId, group);
 
         System.out.println("👥 Grupo creado: " + groupId + " (" + groupName + ") con " + members.size() + " miembros");
+
+        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS sobre el nuevo grupo
+        ChatSummary groupSummary = new ChatSummary(
+                groupId,
+                groupName,
+                "Grupo creado",
+                System.currentTimeMillis(),
+                true);
+
+        for (String memberId : members) {
+            if (!memberId.equals(ownerId)) { // No notificar al creador
+                notifyNewGroup(memberId, groupSummary);
+            }
+        }
+
         return groupId;
     }
 
@@ -212,6 +224,18 @@ public class ChatCore {
 
         group.memberIds.addAll(Arrays.asList(memberIds));
         System.out.println("➕ Miembros agregados al grupo " + groupId);
+
+        // Notificar a los nuevos miembros
+        ChatSummary groupSummary = new ChatSummary(
+                groupId,
+                group.name,
+                "Has sido agregado al grupo",
+                System.currentTimeMillis(),
+                true);
+
+        for (String memberId : memberIds) {
+            notifyNewGroup(memberId, groupSummary);
+        }
     }
 
     public String[] getGroupMembers(String groupId) {
@@ -259,9 +283,11 @@ public class ChatCore {
         groupMessages.computeIfAbsent(groupId, k -> new ArrayList<>()).add(message);
         System.out.println("💬 Mensaje enviado al grupo " + groupId + " por " + fromUserId);
 
-        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS (incluyendo al remitente)
+        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS EXCEPTO AL EMISOR
         for (String memberId : group.memberIds) {
-            notifyClient(memberId, message);
+            if (!memberId.equals(fromUserId)) {
+                notifyClient(memberId, message);
+            }
         }
     }
 
@@ -296,9 +322,11 @@ public class ChatCore {
         System.out.println(
                 "🎤 Audio enviado al grupo " + groupId + " por " + fromUserId + ". Duración: " + duration + "s");
 
-        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS
+        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS EXCEPTO AL EMISOR
         for (String memberId : group.memberIds) {
-            notifyClient(memberId, message);
+            if (!memberId.equals(fromUserId)) {
+                notifyClient(memberId, message);
+            }
         }
     }
 

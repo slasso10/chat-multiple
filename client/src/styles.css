@@ -75,7 +75,6 @@ body {
     transform: translateY(0);
 }
 
-/* Botón de actualizar - opcional, más sutil */
 #btn-refresh-chats {
     background-color: #30363d;
     font-size: 11px;
@@ -162,7 +161,35 @@ body {
     color: white;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+}
+
+.header-info {
+    display: flex;
+    align-items: center;
     gap: 10px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-call {
+    padding: 8px 16px;
+    background-color: #238636;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-call:hover {
+    background-color: #2ea043;
+    transform: scale(1.05);
 }
 
 .chat-type-badge {
@@ -170,6 +197,72 @@ body {
     padding: 3px 8px;
     border-radius: 4px;
     background-color: #388bfd;
+}
+
+/* ====== CONTROLES DE LLAMADA ====== */
+.call-controls {
+    background-color: #238636;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #2ea043;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 100px;
+        opacity: 1;
+    }
+}
+
+.call-status {
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.call-status::before {
+    content: '📞';
+    animation: pulse 2s infinite;
+}
+
+.call-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-call-control {
+    padding: 8px 16px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-call-control:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.btn-call-control.btn-end {
+    background-color: #da3633;
+    border-color: #c93632;
+}
+
+.btn-call-control.btn-end:hover {
+    background-color: #b62324;
 }
 
 /* ====== MENSAJES ====== */
@@ -188,7 +281,6 @@ body {
     font-size: 14px;
 }
 
-/* Mensajes recibidos */
 .message {
     margin-bottom: 12px;
     max-width: 70%;
@@ -212,12 +304,10 @@ body {
     word-wrap: break-word;
 }
 
-/* Mensajes enviados */
 .message.sent .message-bubble {
     background-color: #1f6feb;
 }
 
-/* Nombre del remitente */
 .message-sender {
     font-size: 12px;
     color: #79c0ff;
@@ -229,7 +319,6 @@ body {
     margin: 2px 0;
 }
 
-/* Hora */
 .message-time {
     font-size: 10px;
     color: #8b949e;
@@ -325,7 +414,6 @@ body {
     opacity: 0.5;
 }
 
-/* Estilos para mensajes de audio */
 .audio-message {
     display: flex;
     align-items: center;
@@ -495,7 +583,6 @@ body {
     border-top: 1px solid #30363d;
 }
 
-/* ====== BOTONES DEL MODAL ====== */
 .btn-secondary, .btn-primary {
     padding: 10px 20px;
     border: none;
