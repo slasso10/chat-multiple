@@ -18,7 +18,6 @@ class ChatUIController {
     }
 
     initialize() {
-        // Obtener referencias a elementos del DOM
         this.elements = {
             chatList: document.getElementById('chat-list'),
             messagesContainer: document.getElementById('messages-container'),
@@ -57,9 +56,6 @@ class ChatUIController {
         this.createRemoteAudioElement();
     }
 
-    /**
-     * Crea elemento de audio para reproducir stream remoto
-     */
     createRemoteAudioElement() {
         this.remoteAudioElement = document.createElement('audio');
         this.remoteAudioElement.autoplay = true;
@@ -67,7 +63,6 @@ class ChatUIController {
     }
 
     attachEventListeners() {
-        // Enviar mensaje
         if (this.elements.btnSendMessage) {
             this.elements.btnSendMessage.addEventListener('click', () => this.handleSendMessage());
         }
@@ -80,12 +75,10 @@ class ChatUIController {
             });
         }
 
-        // Actualizar chats
         if (this.elements.btnRefreshChats) {
             this.elements.btnRefreshChats.addEventListener('click', () => this.handleRefreshChats());
         }
 
-        // Modal de nuevo grupo
         if (this.elements.btnNewGroup) {
             this.elements.btnNewGroup.addEventListener('click', () => this.showNewGroupModal());
         }
@@ -99,7 +92,6 @@ class ChatUIController {
             this.elements.btnCreateGroup.addEventListener('click', () => this.handleCreateGroup());
         }
 
-        // Modal de nuevo chat directo
         if (this.elements.btnNewDirectChat) {
             this.elements.btnNewDirectChat.addEventListener('click', () => this.showNewDirectChatModal());
         }
@@ -113,7 +105,6 @@ class ChatUIController {
             this.elements.btnStartDirectChat.addEventListener('click', () => this.handleStartDirectChat());
         }
 
-        // Cerrar modales al hacer click fuera
         if (this.elements.modalNewGroup) {
             this.elements.modalNewGroup.addEventListener('click', (e) => {
                 if (e.target === this.elements.modalNewGroup) {
@@ -130,12 +121,10 @@ class ChatUIController {
             });
         }
 
-        // Botón de grabación de audio
         if (this.elements.btnRecordAudio) {
             this.elements.btnRecordAudio.addEventListener('click', () => this.handleRecordAudio());
         }
 
-        // 📞 Botones de llamada
         if (this.elements.btnStartCall) {
             this.elements.btnStartCall.addEventListener('click', () => this.handleStartCall());
         }
@@ -161,8 +150,6 @@ class ChatUIController {
     hideLoginModal() {
         this.elements.modalLogin.style.display = 'none';
     }
-
-    // === Renderizado de chats ===
 
     renderChatList() {
         const chats = chatState.getChats();
@@ -213,19 +200,15 @@ class ChatUIController {
         try {
             this.showLoading('Cargando mensajes...');
             
-            // Establecer chat activo
             chatState.setActiveChat(chat.chatId, chat.chatName, chat.isGroup);
             
-            // Cargar mensajes
             await messageReceiver.loadChatMessages(chat.chatId, chat.isGroup);
             
-            // Actualizar UI
             this.updateChatHeader();
             this.renderMessages();
             this.enableMessageInput();
             this.renderChatList();
             
-            // Mostrar/ocultar botón de llamada
             this.updateCallButtonVisibility();
             
             this.hideLoading();
@@ -235,8 +218,6 @@ class ChatUIController {
             alert('Error al cargar el chat');
         }
     }
-
-    // === Renderizado de mensajes ===
 
     renderMessages() {
         const messages = chatState.getActiveMessages();
@@ -348,8 +329,6 @@ class ChatUIController {
         `;
     }
 
-    // === Envío de mensajes ===
-
     async handleSendMessage() {
         const content = this.elements.messageInput.value.trim();
         if (!content) return;
@@ -380,14 +359,12 @@ class ChatUIController {
 
         try {
             await messageSender.sendMessage(content);
-            console.log('✅ Mensaje enviado al servidor');
+            console.log(' Mensaje enviado al servidor');
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
             alert('Hubo un error al enviar el mensaje.');
         }
     }
-
-    // === Actualización de chats ===
 
     async handleRefreshChats() {
         try {
@@ -397,8 +374,6 @@ class ChatUIController {
             console.error('Error al actualizar chats:', error);
         }
     }
-
-    // === Modal de nuevo grupo ===
 
     async showNewGroupModal() {
         try {
@@ -454,15 +429,13 @@ class ChatUIController {
             await this.handleRefreshChats();
             this.hideLoading();
             
-            console.log('✅ Grupo creado exitosamente');
+            console.log(' Grupo creado exitosamente');
         } catch (error) {
             console.error('Error al crear grupo:', error);
             this.hideLoading();
             alert('Error al crear el grupo');
         }
     }
-
-    // === Modal de nuevo chat directo ===
 
     async showNewDirectChatModal() {
         if (!this.elements.usersListDirectChat || !this.elements.modalNewDirectChat) {
@@ -532,14 +505,13 @@ class ChatUIController {
             
             await this.handleRefreshChats();
             
-            console.log(`✅ Chat directo iniciado con ${otherUser.name}`);
+            console.log(` Chat directo iniciado con ${otherUser.name}`);
         } catch (error) {
             console.error('Error al iniciar chat directo:', error);
             alert('Error al iniciar el chat directo');
         }
     }
 
-    // === UI Helpers ===
 
     updateChatHeader() {
         const activeChat = chatState.getActiveChat();
@@ -606,9 +578,10 @@ class ChatUIController {
                     const activeChat = chatState.getActiveChat();
                     const currentUserId = chatState.getCurrentUserId();
                     const currentUserName = chatState.getCurrentUserName();
-                    const duration = await audioManager.getAudioDuration(audioBlob); 
-
+                    const duration = await audioManager.getAudioDuration(audioBlob);
                     
+                    const base64Audio = await audioManager.blobToBase64(audioBlob);
+
                     const tempMessage = {
                         messageId: 'temp-' + Date.now(), 
                         chatId: activeChat.id,
@@ -618,11 +591,10 @@ class ChatUIController {
                         timestamp: Date.now(),
                         isGroupMessage: activeChat.isGroup,
                         isAudio: true,
-                        audioData: audioBlob, 
+                        audioData: base64Audio, 
                         audioDuration: duration 
                     };
 
-                    
                     chatState.addMessage(tempMessage);
                     this.displayNewMessage(tempMessage);
                     await messageSender.sendAudio(audioBlob);
@@ -638,12 +610,9 @@ class ChatUIController {
         }
     }
 
-    // === GESTIÓN DE LLAMADAS ===
-
     updateCallButtonVisibility() {
         const activeChat = chatState.getActiveChat();
         
-        // Solo mostrar botón de llamada en chats directos
         if (activeChat && !activeChat.isGroup) {
             this.elements.btnStartCall.style.display = 'block';
         } else {
@@ -661,7 +630,7 @@ class ChatUIController {
 
         try {
             await callManager.startCall(activeChat.id, activeChat.name, true);
-            console.log('📞 Llamada iniciada');
+            console.log(' Llamada iniciada');
         } catch (error) {
             console.error('Error al iniciar llamada:', error);
             alert('No se pudo iniciar la llamada. Verifica los permisos del micrófono.');
@@ -677,24 +646,26 @@ class ChatUIController {
         this.elements.btnToggleMute.textContent = this.isMuted ? '🔇' : '🔊';
     }
 
-    /**
-     * Actualiza la UI según el estado de la llamada
-     */
     updateCallState(state, call) {
         switch (state) {
             case 'calling':
-                this.elements.callStatus.textContent = `Llamando a ${call.userName}...`;
-                this.elements.callControls.style.display = 'flex';
-                this.elements.btnStartCall.style.display = 'none';
+                if (call) {
+                    this.elements.callStatus.textContent = `Llamando a ${call.userName}...`;
+                    this.elements.callControls.style.display = 'flex';
+                    this.elements.btnStartCall.style.display = 'none';
+                }
                 break;
                 
             case 'connected':
-                this.elements.callStatus.textContent = `En llamada con ${call.userName}`;
-                
-                // Reproducir audio remoto
-                const remoteStream = callManager.getRemoteStream();
-                if (remoteStream && this.remoteAudioElement) {
-                    this.remoteAudioElement.srcObject = remoteStream;
+                if (call) {
+                    this.elements.callStatus.textContent = `En llamada con ${call.userName}`;
+                    this.elements.callControls.style.display = 'flex';
+                    this.elements.btnStartCall.style.display = 'none';
+                    
+                    const remoteStream = callManager.getRemoteStream();
+                    if (remoteStream && this.remoteAudioElement) {
+                        this.remoteAudioElement.srcObject = remoteStream;
+                    }
                 }
                 break;
                 
@@ -715,6 +686,5 @@ class ChatUIController {
     }
 }
 
-// Exportar instancia singleton
 const uiController = new ChatUIController();
 module.exports = uiController;

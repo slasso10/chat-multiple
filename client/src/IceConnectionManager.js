@@ -16,10 +16,8 @@ class IceConnectionManager {
         try {
             console.log('Inicializando conexión Ice...');
             
-            // Inicializar comunicador sin propiedades especiales
             this.communicator = Ice.initialize();
             
-            // Crear proxies para los servicios principales
             const chatBase = this.communicator.stringToProxy("chat:ws -h localhost -p 10000");
             this.chatServicePrx = await compunet.ChatServicePrx.checkedCast(chatBase);
 
@@ -54,7 +52,6 @@ class IceConnectionManager {
         }
     }
 
-    // === Métodos de ChatService ===
 
     async registerUser(userId, userName) {
         if (!this.isConnected) throw new Error('No hay conexión con el servidor');
@@ -113,8 +110,6 @@ class IceConnectionManager {
         await this.registerCallback(userId); 
         console.log(`✅ Login completo: ${userName}`);
     }
-
-    // === Métodos de GroupService ===
 
     async createGroup(ownerId, groupName, memberIds) {
         if (!this.isConnected) throw new Error('No hay conexión con el servidor');
@@ -212,41 +207,33 @@ class IceConnectionManager {
         }
     }
 
-    // === Registro de Callbacks - VERSIÓN CORREGIDA ===
-
     async registerCallback(userId) {
         try {
             console.log("🔔 Registrando callback para:", userId);
 
-            // Crear adapter con nombre vacío (adapter anónimo)
             this.callbackAdapter = await this.communicator.createObjectAdapter("");
             
-            // Activar adapter ANTES de agregar el servant
             await this.callbackAdapter.activate();
-            console.log("✅ Adapter activado");
+            console.log(" Adapter activado");
 
-            // Crear el servant del callback
             this.callbackServant = new ClientCallbackI();
-            console.log("✅ Servant creado");
+            console.log(" Servant creado");
 
-            // Crear identidad única para este cliente
             const identity = new Ice.Identity();
             identity.name = "callback_" + userId;
             identity.category = "";
 
-            // Agregar el servant al adapter y obtener el proxy
             const proxy = this.callbackAdapter.add(this.callbackServant, identity);
-            console.log("✅ Servant agregado al adapter con identidad:", identity.name);
-            console.log("✅ Proxy creado:", proxy.toString());
+            console.log(" Servant agregado al adapter con identidad:", identity.name);
+            console.log(" Proxy creado:", proxy.toString());
 
-            // Registrar el callback en el servidor
             await this.chatServicePrx.registerCallback(proxy, userId);
 
-            console.log("✅ Callback registrado con éxito para:", userId);
-            console.log("🎯 El servidor ahora puede enviar notificaciones a este cliente");
+            console.log(" Callback registrado con éxito para:", userId);
+            console.log(" El servidor ahora puede enviar notificaciones a este cliente");
 
         } catch (err) {
-            console.error("❌ Error registrando callback:", err);
+            console.error(" Error registrando callback:", err);
             console.error("Stack trace:", err.stack);
             throw err;
         }
@@ -262,6 +249,5 @@ class IceConnectionManager {
     }
 }
 
-// Exportar una instancia singleton
 const iceManager = new IceConnectionManager();
 module.exports = iceManager;

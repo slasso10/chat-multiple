@@ -1,7 +1,3 @@
-/**
- * AudioManager - Gestión de grabación y reproducción de audio
- */
-
 class AudioManager {
     constructor() {
         this.mediaRecorder = null;
@@ -10,12 +6,9 @@ class AudioManager {
         this.audioStream = null;
     }
 
-    /**
-     * Inicializar y solicitar permisos de micrófono
-     */
+
     async initialize() {
         try {
-            // Solicitar permisos de micrófono
             this.audioStream = await navigator.mediaDevices.getUserMedia({ 
                 audio: {
                     echoCancellation: true,
@@ -24,17 +17,14 @@ class AudioManager {
                 } 
             });
             
-            console.log('✅ Permisos de micrófono concedidos');
+            console.log(' Permisos de micrófono concedidos');
             return true;
         } catch (error) {
-            console.error('❌ Error al acceder al micrófono:', error);
+            console.error(' Error al acceder al micrófono:', error);
             throw new Error('No se pudo acceder al micrófono. Por favor, concede los permisos necesarios.');
         }
     }
 
-    /**
-     * Iniciar grabación de audio
-     */
     async startRecording() {
         try {
             if (!this.audioStream) {
@@ -43,19 +33,16 @@ class AudioManager {
 
             this.audioChunks = [];
             
-            // Crear MediaRecorder con el stream de audio
             this.mediaRecorder = new MediaRecorder(this.audioStream, {
                 mimeType: 'audio/webm;codecs=opus'
             });
 
-            // Evento cuando hay datos disponibles
             this.mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
                     this.audioChunks.push(event.data);
                 }
             };
 
-            // Iniciar grabación
             this.mediaRecorder.start();
             this.isRecording = true;
             
@@ -67,9 +54,6 @@ class AudioManager {
         }
     }
 
-    /**
-     * Detener grabación y obtener el audio
-     */
     async stopRecording() {
         return new Promise((resolve, reject) => {
             if (!this.mediaRecorder || !this.isRecording) {
@@ -78,7 +62,6 @@ class AudioManager {
             }
 
             this.mediaRecorder.onstop = () => {
-                // Crear blob de audio
                 const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
                 
                 this.isRecording = false;
@@ -93,26 +76,19 @@ class AudioManager {
         });
     }
 
-    /**
-     * Cancelar grabación
-     */
     cancelRecording() {
         if (this.mediaRecorder && this.isRecording) {
             this.mediaRecorder.stop();
             this.isRecording = false;
             this.audioChunks = [];
-            console.log('❌ Grabación cancelada');
+            console.log(' Grabación cancelada');
         }
     }
 
-    /**
-     * Convertir blob de audio a base64
-     */
     async blobToBase64(blob) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                // Eliminar el prefijo "data:audio/webm;base64,"
                 const base64 = reader.result.split(',')[1];
                 resolve(base64);
             };
@@ -121,9 +97,6 @@ class AudioManager {
         });
     }
 
-    /**
-     * Convertir base64 a blob
-     */
     base64ToBlob(base64, mimeType = 'audio/webm;codecs=opus') {
         const byteCharacters = atob(base64);
         const byteArrays = [];
@@ -135,9 +108,6 @@ class AudioManager {
         return new Blob([new Uint8Array(byteArrays)], { type: mimeType });
     }
 
-    /**
-     * Reproducir audio desde base64
-     */
     async playAudio(base64Audio) {
         try {
             const audioBlob = this.base64ToBlob(base64Audio);
@@ -145,7 +115,6 @@ class AudioManager {
             
             const audio = new Audio(audioUrl);
             
-            // Liberar URL cuando termine
             audio.onended = () => {
                 URL.revokeObjectURL(audioUrl);
             };
@@ -159,9 +128,6 @@ class AudioManager {
         }
     }
 
-    /**
-     * Obtener duración del audio
-     */
     async getAudioDuration(blob) {
         return new Promise((resolve) => {
             const audio = new Audio();
@@ -172,9 +138,6 @@ class AudioManager {
         });
     }
 
-    /**
-     * Liberar recursos
-     */
     cleanup() {
         if (this.audioStream) {
             this.audioStream.getTracks().forEach(track => track.stop());
@@ -185,9 +148,6 @@ class AudioManager {
         this.isRecording = false;
     }
 
-    /**
-     * Verificar soporte del navegador
-     */
     static isSupported() {
         return !!(navigator.mediaDevices && 
                  navigator.mediaDevices.getUserMedia && 
@@ -195,6 +155,5 @@ class AudioManager {
     }
 }
 
-// Exportar instancia singleton
 const audioManager = new AudioManager();
 module.exports = audioManager;

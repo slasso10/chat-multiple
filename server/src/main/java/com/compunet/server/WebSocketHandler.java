@@ -10,10 +10,6 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Servidor WebSocket para comunicación en tiempo real
- * Maneja notificaciones de mensajes y señalización de llamadas WebRTC
- */
 public class WebSocketHandler extends WebSocketServer {
 
     private final Map<String, WebSocket> userConnections = new ConcurrentHashMap<>();
@@ -23,12 +19,12 @@ public class WebSocketHandler extends WebSocketServer {
     public WebSocketHandler(int port, ChatCore chatCore) {
         super(new InetSocketAddress(port));
         this.chatCore = chatCore;
-        System.out.println("🌐 Servidor WebSocket iniciado en puerto " + port);
+        System.out.println(" Servidor WebSocket iniciado en puerto " + port);
     }
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        System.out.println("🔌 Nueva conexión WebSocket: " + conn.getRemoteSocketAddress());
+        System.out.println(" Nueva conexión WebSocket: " + conn.getRemoteSocketAddress());
     }
 
     @Override
@@ -44,7 +40,7 @@ public class WebSocketHandler extends WebSocketServer {
 
         if (disconnectedUser != null) {
             userConnections.remove(disconnectedUser);
-            System.out.println("❌ Usuario desconectado: " + disconnectedUser);
+            System.out.println(" Usuario desconectado: " + disconnectedUser);
         }
     }
 
@@ -80,27 +76,25 @@ public class WebSocketHandler extends WebSocketServer {
                     break;
 
                 default:
-                    System.out.println("⚠️ Tipo de mensaje desconocido: " + type);
+                    System.out.println(" Tipo de mensaje desconocido: " + type);
             }
         } catch (Exception e) {
-            System.err.println("❌ Error procesando mensaje WebSocket: " + e.getMessage());
+            System.err.println(" Error procesando mensaje WebSocket: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     @Override
     public void onError(WebSocket conn, Exception ex) {
-        System.err.println("❌ Error en WebSocket: " + ex.getMessage());
+        System.err.println(" Error en WebSocket: " + ex.getMessage());
         ex.printStackTrace();
     }
 
     @Override
     public void onStart() {
-        System.out.println("✅ Servidor WebSocket listo para aceptar conexiones");
+        System.out.println(" Servidor WebSocket listo para aceptar conexiones");
         setConnectionLostTimeout(100);
     }
-
-    // ===== MÉTODOS DE MANEJO DE MENSAJES =====
 
     private void handleRegister(WebSocket conn, JsonObject json) {
         String userId = json.get("userId").getAsString();
@@ -111,14 +105,9 @@ public class WebSocketHandler extends WebSocketServer {
         response.addProperty("userId", userId);
 
         conn.send(gson.toJson(response));
-        System.out.println("✅ Usuario registrado en WebSocket: " + userId);
+        System.out.println(" Usuario registrado en WebSocket: " + userId);
     }
 
-    // ===== NOTIFICACIÓN DE MENSAJES =====
-
-    /**
-     * Envía una notificación de nuevo mensaje a un usuario
-     */
     public void notifyNewMessage(String userId, compunet.Message message) {
         WebSocket conn = userConnections.get(userId);
 
@@ -126,7 +115,6 @@ public class WebSocketHandler extends WebSocketServer {
             JsonObject notification = new JsonObject();
             notification.addProperty("type", "new-message");
 
-            // Convertir Message a JSON
             JsonObject msgJson = new JsonObject();
             msgJson.addProperty("id", message.id);
             msgJson.addProperty("senderId", message.senderId);
@@ -142,15 +130,12 @@ public class WebSocketHandler extends WebSocketServer {
             notification.add("message", msgJson);
 
             conn.send(gson.toJson(notification));
-            System.out.println("✅ Notificación de mensaje enviada a: " + userId);
+            System.out.println(" Notificación de mensaje enviada a: " + userId);
         } else {
-            System.out.println("⚠️ Usuario no conectado vía WebSocket: " + userId);
+            System.out.println(" Usuario no conectado vía WebSocket: " + userId);
         }
     }
 
-    /**
-     * Notifica la creación de un nuevo grupo
-     */
     public void notifyNewGroup(String userId, compunet.ChatSummary chatSummary) {
         WebSocket conn = userConnections.get(userId);
 
@@ -168,11 +153,9 @@ public class WebSocketHandler extends WebSocketServer {
             notification.add("group", groupJson);
 
             conn.send(gson.toJson(notification));
-            System.out.println("✅ Notificación de grupo enviada a: " + userId);
+            System.out.println(" Notificación de grupo enviada a: " + userId);
         }
     }
-
-    // ===== SEÑALIZACIÓN DE LLAMADAS WEBRTC =====
 
     private void handleCallOffer(JsonObject json) {
         String fromUser = json.get("from").getAsString();
@@ -188,9 +171,9 @@ public class WebSocketHandler extends WebSocketServer {
             callNotification.addProperty("offer", offer);
 
             targetConn.send(gson.toJson(callNotification));
-            System.out.println("📞 Oferta de llamada enviada de " + fromUser + " a " + toUser);
+            System.out.println(" Oferta de llamada enviada de " + fromUser + " a " + toUser);
         } else {
-            // Notificar al llamador que el usuario no está disponible
+
             WebSocket callerConn = userConnections.get(fromUser);
             if (callerConn != null && callerConn.isOpen()) {
                 JsonObject response = new JsonObject();
@@ -215,7 +198,7 @@ public class WebSocketHandler extends WebSocketServer {
             answerNotification.addProperty("answer", answer);
 
             targetConn.send(gson.toJson(answerNotification));
-            System.out.println("📞 Respuesta de llamada enviada de " + fromUser + " a " + toUser);
+            System.out.println(" Respuesta de llamada enviada de " + fromUser + " a " + toUser);
         }
     }
 
@@ -233,7 +216,7 @@ public class WebSocketHandler extends WebSocketServer {
             iceNotification.addProperty("candidate", candidate);
 
             targetConn.send(gson.toJson(iceNotification));
-            System.out.println("🧊 ICE candidate enviado de " + fromUser + " a " + toUser);
+            System.out.println(" ICE candidate enviado de " + fromUser + " a " + toUser);
         }
     }
 
@@ -249,7 +232,7 @@ public class WebSocketHandler extends WebSocketServer {
             endNotification.addProperty("from", fromUser);
 
             targetConn.send(gson.toJson(endNotification));
-            System.out.println("📞 Llamada finalizada entre " + fromUser + " y " + toUser);
+            System.out.println(" Llamada finalizada entre " + fromUser + " y " + toUser);
         }
     }
 
@@ -265,20 +248,14 @@ public class WebSocketHandler extends WebSocketServer {
             rejectNotification.addProperty("from", fromUser);
 
             targetConn.send(gson.toJson(rejectNotification));
-            System.out.println("📞 Llamada rechazada entre " + fromUser + " y " + toUser);
+            System.out.println(" Llamada rechazada entre " + fromUser + " y " + toUser);
         }
     }
 
-    /**
-     * Obtiene el número de usuarios conectados
-     */
     public int getConnectedUsersCount() {
         return userConnections.size();
     }
 
-    /**
-     * Verifica si un usuario está conectado
-     */
     public boolean isUserConnected(String userId) {
         WebSocket conn = userConnections.get(userId);
         return conn != null && conn.isOpen();

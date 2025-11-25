@@ -8,7 +8,7 @@ class MessageReceiver {
 
     setIceManager(iceManagerInstance) {
         this.iceManager = iceManagerInstance;
-        console.log('✅ IceManager asignado a MessageReceiver');
+        console.log(' IceManager asignado a MessageReceiver');
     }
 
     async loadChatMessages(chatId, isGroup) {
@@ -27,7 +27,6 @@ class MessageReceiver {
                 messages = await this.iceManager.getDirectChatMessages(myId, otherUserId);
             }
 
-            // Ordenar por timestamp ascendente
             messages.sort((a, b) => {
                 const tA = (typeof a.timestamp === 'object' && a.timestamp.toNumber) 
                     ? a.timestamp.toNumber() 
@@ -39,7 +38,7 @@ class MessageReceiver {
             });
 
             chatState.setActiveMessages(messages);
-            console.log(`📨 Mensajes cargados: ${messages.length}`);
+            console.log(` Mensajes cargados: ${messages.length}`);
             return messages;
         } catch (error) {
             console.error('Error al cargar mensajes:', error);
@@ -55,13 +54,11 @@ class MessageReceiver {
         const userId = chatState.getCurrentUserId();
 
         try {
-            // Obtener chats directos y de grupo en paralelo
             const [directChats, groupChats] = await Promise.all([
                 this.iceManager.getUserDirectChats(userId),
                 this.iceManager.getUserGroupChats(userId)
             ]);
 
-            // Combinar ambos tipos de chats
             const allChats = [...directChats, ...groupChats];
             
             chatState.setChats(allChats);
@@ -82,13 +79,10 @@ class MessageReceiver {
         try {
             const usersArray = await this.iceManager.getAllUsers();
             
-            // Convertir el array de usuarios a objetos simples si es necesario
             const users = usersArray.map(u => {
-                // Si 'u' ya tiene id y name, usarlos directamente
                 if (u.id && u.name) {
                     return { id: u.id, name: u.name };
                 }
-                // Si no, asumir que es un objeto Ice y acceder a sus propiedades
                 return { 
                     id: u.id || u._id || '', 
                     name: u.name || u._name || 'Usuario' 
@@ -124,7 +118,6 @@ class MessageReceiver {
     handleIncomingMessage(message) {
         chatState.addMessage(message);
         
-        // Actualizar UI si está disponible
         try {
             const uiController = require('./ChatUIController');
             uiController.renderMessages();
@@ -135,6 +128,5 @@ class MessageReceiver {
     }
 }
 
-// Exportar instancia singleton
 const messageReceiver = new MessageReceiver();
 module.exports = messageReceiver;

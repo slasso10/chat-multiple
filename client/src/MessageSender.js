@@ -26,10 +26,8 @@ class MessageSender {
 
         try {
             if (activeChat.isGroup) {
-                // Enviar mensaje a grupo
                 await this.iceManager.sendGroupMessage(userId, activeChat.id, content.trim());
             } else {
-                // Enviar mensaje directo
                 await this.iceManager.sendDirectMessage(userId, activeChat.id, content.trim());
             }
 
@@ -85,10 +83,9 @@ class MessageSender {
         const userId = chatState.getCurrentUserId();
 
         try {
-            // Convertir blob a base64
+            
             const base64Audio = await audioManager.blobToBase64(audioBlob);
             
-            // Obtener duración
             const duration = await audioManager.getAudioDuration(audioBlob);
 
             if (activeChat.isGroup) {
@@ -106,6 +103,6 @@ class MessageSender {
     }
 }
 
-// Exportar instancia singleton
+
 const messageSender = new MessageSender();
 module.exports = messageSender;

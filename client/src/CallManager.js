@@ -1,7 +1,3 @@
-/**
- * CallManager - Gestión de llamadas de voz/video usando WebRTC
- */
-
 const wsClient = require('./WebSocketClient');
 
 class CallManager {
@@ -9,10 +5,11 @@ class CallManager {
         this.peerConnection = null;
         this.localStream = null;
         this.remoteStream = null;
-        this.currentCall = null; // { userId, userName, isOutgoing }
-        this.onCallStateChange = null; // Callback para cambios de estado
+        this.currentCall = null; 
+        this.onCallStateChange = null; 
+        this.pendingOffer = null; 
+        this.pendingIceCandidates = []; 
         
-        // Configuración ICE con servidores STUN públicos
         this.iceServers = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -21,11 +18,7 @@ class CallManager {
         };
     }
 
-    /**
-     * Inicializa el gestor de llamadas y registra handlers de WebSocket
-     */
     initialize() {
-        // Registrar handlers para señalización
         wsClient.on('call-offer', (data) => this.handleCallOffer(data));
         wsClient.on('call-answer', (data) => this.handleCallAnswer(data));
         wsClient.on('ice-candidate', (data) => this.handleIceCandidate(data));
@@ -33,49 +26,49 @@ class CallManager {
         wsClient.on('call-reject', (data) => this.handleCallReject(data));
         wsClient.on('call-unavailable', (data) => this.handleCallUnavailable(data));
         
-        console.log('✅ CallManager inicializado');
+        console.log(' CallManager inicializado');
     }
 
-    /**
-     * Inicia una llamada con otro usuario
-     */
     async startCall(userId, userName, audioOnly = true) {
         try {
-            console.log(`📞 Iniciando llamada con ${userName}...`);
+            console.log(` Iniciando llamada con ${userName}...`);
             
-            // Obtener acceso a medios locales
             this.localStream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
                 video: !audioOnly
             });
             
-            // Crear conexión peer
             this.peerConnection = new RTCPeerConnection(this.iceServers);
             
-            // Agregar tracks locales
             this.localStream.getTracks().forEach(track => {
                 this.peerConnection.addTrack(track, this.localStream);
             });
             
-            // Manejar tracks remotos
             this.peerConnection.ontrack = (event) => {
-                console.log('🎵 Stream remoto recibido');
+                console.log(' Stream remoto recibido');
                 this.remoteStream = event.streams[0];
                 this.notifyStateChange('connected');
             };
             
-            // Manejar candidatos ICE
             this.peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
                     wsClient.sendIceCandidate(userId, JSON.stringify(event.candidate));
                 }
             };
             
-            // Crear oferta
+            this.peerConnection.oniceconnectionstatechange = () => {
+                console.log(' Estado de ICE:', this.peerConnection.iceConnectionState);
+                
+                if (this.peerConnection.iceConnectionState === 'disconnected' || 
+                    this.peerConnection.iceConnectionState === 'failed') {
+                    console.warn(' Conexión ICE perdida');
+                    this.endCall();
+                }
+            };
+            
             const offer = await this.peerConnection.createOffer();
             await this.peerConnection.setLocalDescription(offer);
             
-            // Enviar oferta al otro usuario
             wsClient.initiateCall(userId, JSON.stringify(offer));
             
             this.currentCall = {
@@ -86,169 +79,282 @@ class CallManager {
             
             this.notifyStateChange('calling');
             
-            console.log('📞 Oferta de llamada enviada');
+            console.log(' Oferta de llamada enviada');
             return true;
             
         } catch (error) {
-            console.error('❌ Error iniciando llamada:', error);
+            console.error(' Error iniciando llamada:', error);
             this.cleanup();
             throw error;
         }
     }
 
-    /**
-     * Maneja una oferta de llamada entrante
-     */
     async handleCallOffer(data) {
         try {
-            console.log(`📞 Llamada entrante de ${data.from}`);
+            console.log(` Llamada entrante de ${data.from}`);
             
-            const accept = confirm(`Llamada entrante de ${data.from}. ¿Aceptar?`);
+            this.pendingOffer = data;
             
-            if (!accept) {
-                wsClient.rejectCall(data.from);
-                return;
+            this.pendingIceCandidates = [];
+            
+            this.showIncomingCallDialog(data.from);
+            
+        } catch (error) {
+            console.error(' Error manejando oferta de llamada:', error);
+            this.cleanup();
+        }
+    }
+
+    showIncomingCallDialog(callerId) {
+        const chatState = require('./ChatStateManager');
+        const callerUser = chatState.getAllUsers().find(u => u.id === callerId);
+        const callerName = callerUser ? callerUser.name : callerId;
+        
+        // Crear el diálogo HTML
+        const dialog = document.createElement('div');
+        dialog.id = 'incoming-call-dialog';
+        dialog.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f6feb;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 10000;
+            min-width: 300px;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        dialog.innerHTML = `
+            <div style="text-align: center;">
+                <h3 style="margin: 0 0 10px 0;">📞 Llamada entrante</h3>
+                <p style="margin: 0 0 20px 0; font-size: 16px;">${this.escapeHtml(callerName)}</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="accept-call-btn" style="
+                        background: #238636;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-weight: bold;
+                    ">Aceptar</button>
+                    <button id="reject-call-btn" style="
+                        background: #da3633;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-weight: bold;
+                    ">Rechazar</button>
+                </div>
+            </div>
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
             }
-            
-            // Obtener acceso a medios locales
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(dialog);
+        
+        document.getElementById('accept-call-btn').addEventListener('click', () => {
+            dialog.remove();
+            this.acceptIncomingCall();
+        });
+        
+        document.getElementById('reject-call-btn').addEventListener('click', () => {
+            dialog.remove();
+            wsClient.rejectCall(this.pendingOffer.from);
+            this.pendingOffer = null;
+            this.pendingIceCandidates = [];
+        });
+        
+        setTimeout(() => {
+            if (document.getElementById('incoming-call-dialog')) {
+                dialog.remove();
+                if (this.pendingOffer) {
+                    wsClient.rejectCall(this.pendingOffer.from);
+                    this.pendingOffer = null;
+                    this.pendingIceCandidates = [];
+                }
+            }
+        }, 30000);
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async acceptIncomingCall() {
+        if (!this.pendingOffer) {
+            console.error(' No hay oferta pendiente');
+            return;
+        }
+        
+        const data = this.pendingOffer;
+        this.pendingOffer = null;
+        
+        try {
             this.localStream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
                 video: false
             });
             
-            // Crear conexión peer
             this.peerConnection = new RTCPeerConnection(this.iceServers);
             
-            // Agregar tracks locales
             this.localStream.getTracks().forEach(track => {
                 this.peerConnection.addTrack(track, this.localStream);
             });
             
-            // Manejar tracks remotos
             this.peerConnection.ontrack = (event) => {
                 console.log('🎵 Stream remoto recibido');
                 this.remoteStream = event.streams[0];
                 this.notifyStateChange('connected');
             };
             
-            // Manejar candidatos ICE
             this.peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
                     wsClient.sendIceCandidate(data.from, JSON.stringify(event.candidate));
                 }
             };
             
-            // Establecer descripción remota
+            this.peerConnection.oniceconnectionstatechange = () => {
+                console.log('🔗 Estado de ICE:', this.peerConnection.iceConnectionState);
+                
+                if (this.peerConnection.iceConnectionState === 'disconnected' || 
+                    this.peerConnection.iceConnectionState === 'failed') {
+                    console.warn('⚠️ Conexión ICE perdida');
+                    this.endCall();
+                }
+            };
+            
             const offer = JSON.parse(data.offer);
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
             
-            // Crear respuesta
+            console.log(`🧊 Agregando ${this.pendingIceCandidates.length} candidatos ICE pendientes`);
+            for (const candidate of this.pendingIceCandidates) {
+                try {
+                    await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (err) {
+                    console.warn('⚠️ Error agregando candidato pendiente:', err);
+                }
+            }
+            this.pendingIceCandidates = [];
+            
             const answer = await this.peerConnection.createAnswer();
             await this.peerConnection.setLocalDescription(answer);
             
-            // Enviar respuesta
             wsClient.answerCall(data.from, JSON.stringify(answer));
+            
+            const chatState = require('./ChatStateManager');
+            const callerUser = chatState.getAllUsers().find(u => u.id === data.from);
+            const callerName = callerUser ? callerUser.name : data.from;
             
             this.currentCall = {
                 userId: data.from,
-                userName: data.from,
+                userName: callerName, 
                 isOutgoing: false
             };
             
             this.notifyStateChange('connected');
             
-            console.log('📞 Llamada aceptada');
+            console.log(' Llamada aceptada');
             
         } catch (error) {
-            console.error('❌ Error manejando oferta de llamada:', error);
+            console.error(' Error aceptando llamada:', error);
             this.cleanup();
         }
     }
 
-    /**
-     * Maneja una respuesta de llamada
-     */
     async handleCallAnswer(data) {
         try {
-            console.log('📞 Respuesta de llamada recibida');
+            console.log(' Respuesta de llamada recibida');
             
             const answer = JSON.parse(data.answer);
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
             
-            console.log('✅ Llamada conectada');
+            console.log(' Llamada conectada');
             
         } catch (error) {
-            console.error('❌ Error manejando respuesta:', error);
+            console.error(' Error manejando respuesta:', error);
             this.endCall();
         }
     }
 
-    /**
-     * Maneja un candidato ICE
-     */
     async handleIceCandidate(data) {
         try {
             const candidate = JSON.parse(data.candidate);
+            
+            if (!this.peerConnection) {
+                if (this.pendingOffer && data.from === this.pendingOffer.from) {
+                    console.log(' Guardando candidato ICE para cuando se acepte la llamada');
+                    this.pendingIceCandidates.push(candidate);
+                    return;
+                }
+                
+                console.warn(' Candidato ICE recibido pero no hay peerConnection ni oferta pendiente');
+                return;
+            }
+            
             await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            console.log('🧊 Candidato ICE agregado');
+            console.log(' Candidato ICE agregado');
         } catch (error) {
-            console.error('❌ Error agregando candidato ICE:', error);
+            console.error(' Error agregando candidato ICE:', error);
         }
     }
 
-    /**
-     * Maneja el fin de una llamada
-     */
     handleCallEnd(data) {
-        console.log('📞 Llamada finalizada por el otro usuario');
+        console.log(' Llamada finalizada por el otro usuario');
         this.cleanup();
         this.notifyStateChange('ended');
     }
 
-    /**
-     * Maneja el rechazo de una llamada
-     */
     handleCallReject(data) {
-        console.log('📞 Llamada rechazada');
+        console.log(' Llamada rechazada');
         this.cleanup();
         this.notifyStateChange('rejected');
         alert('Llamada rechazada por el otro usuario');
     }
 
-    /**
-     * Maneja cuando el usuario no está disponible
-     */
     handleCallUnavailable(data) {
-        console.log('📞 Usuario no disponible');
+        console.log(' Usuario no disponible');
         this.cleanup();
         this.notifyStateChange('unavailable');
         alert('Usuario no disponible para llamadas');
     }
 
-    /**
-     * Finaliza la llamada actual
-     */
     endCall() {
         if (this.currentCall) {
             wsClient.endCall(this.currentCall.userId);
-            console.log('📞 Llamada finalizada');
+            console.log(' Llamada finalizada');
         }
         
         this.cleanup();
         this.notifyStateChange('ended');
     }
 
-    /**
-     * Limpia recursos de la llamada
-     */
     cleanup() {
-        // Detener streams locales
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => track.stop());
             this.localStream = null;
         }
         
-        // Cerrar conexión peer
         if (this.peerConnection) {
             this.peerConnection.close();
             this.peerConnection = null;
@@ -256,67 +362,52 @@ class CallManager {
         
         this.remoteStream = null;
         this.currentCall = null;
+        this.pendingOffer = null;
+        this.pendingIceCandidates = []; 
+        
+        const dialog = document.getElementById('incoming-call-dialog');
+        if (dialog) {
+            dialog.remove();
+        }
     }
 
-    /**
-     * Obtiene el stream remoto para reproducción
-     */
     getRemoteStream() {
         return this.remoteStream;
     }
 
-    /**
-     * Obtiene el stream local
-     */
     getLocalStream() {
         return this.localStream;
     }
 
-    /**
-     * Verifica si hay una llamada activa
-     */
     isInCall() {
         return this.currentCall !== null;
     }
 
-    /**
-     * Obtiene información de la llamada actual
-     */
     getCurrentCall() {
         return this.currentCall;
     }
-
-    /**
-     * Notifica cambios de estado
-     */
+    
     notifyStateChange(state) {
         if (this.onCallStateChange) {
             this.onCallStateChange(state, this.currentCall);
         }
     }
 
-    /**
-     * Registra callback para cambios de estado
-     */
     setStateChangeCallback(callback) {
         this.onCallStateChange = callback;
     }
 
-    /**
-     * Silencia/desilencia el micrófono
-     */
     toggleMute() {
         if (this.localStream) {
             const audioTrack = this.localStream.getAudioTracks()[0];
             if (audioTrack) {
                 audioTrack.enabled = !audioTrack.enabled;
-                return !audioTrack.enabled; // Retorna true si está silenciado
+                return !audioTrack.enabled; 
             }
         }
         return false;
     }
 }
 
-// Exportar instancia singleton
 const callManager = new CallManager();
 module.exports = callManager;

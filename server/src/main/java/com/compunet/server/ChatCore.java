@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ChatCore {
-    // Almacenamiento en memoria
     private final Map<String, User> users = new ConcurrentHashMap<>();
     private final Map<String, Group> groups = new ConcurrentHashMap<>();
     private final Map<String, List<Message>> directMessages = new ConcurrentHashMap<>();
@@ -15,10 +14,8 @@ public class ChatCore {
     private final AtomicLong messageIdCounter = new AtomicLong(0);
     private final AtomicLong groupIdCounter = new AtomicLong(0);
 
-    // 🌐 Handler de WebSocket para notificaciones en tiempo real
     private WebSocketHandler webSocketHandler;
 
-    // Clase interna para representar un grupo
     public static class Group {
         public String id;
         public String name;
@@ -33,40 +30,29 @@ public class ChatCore {
         }
     }
 
-    /**
-     * Establece el handler de WebSocket para notificaciones
-     */
     public void setWebSocketHandler(WebSocketHandler handler) {
         this.webSocketHandler = handler;
-        System.out.println("✅ WebSocketHandler conectado a ChatCore");
+        System.out.println(" WebSocketHandler conectado a ChatCore");
     }
 
-    /**
-     * Notifica a un usuario sobre un nuevo mensaje
-     */
     private void notifyClient(String userId, Message message) {
         if (webSocketHandler != null) {
             webSocketHandler.notifyNewMessage(userId, message);
         } else {
-            System.out.println("⚠️ WebSocketHandler no inicializado");
+            System.out.println(" WebSocketHandler no inicializado");
         }
     }
 
-    /**
-     * Notifica a un usuario sobre un nuevo grupo
-     */
     private void notifyNewGroup(String userId, ChatSummary chatSummary) {
         if (webSocketHandler != null) {
             webSocketHandler.notifyNewGroup(userId, chatSummary);
         }
     }
 
-    // === Gestión de usuarios ===
-
     public void registerUser(String userId, String userName) {
         User user = new User(userId, userName);
         users.put(userId, user);
-        System.out.println("👤 Usuario registrado/actualizado: " + userId + " (" + userName + ")");
+        System.out.println(" Usuario registrado/actualizado: " + userId + " (" + userName + ")");
     }
 
     public User getUser(String userId) {
@@ -76,8 +62,6 @@ public class ChatCore {
     public List<User> getAllUsers() {
         return new ArrayList<>(users.values());
     }
-
-    // === Mensajes directos ===
 
     public void sendDirectMessage(String fromUserId, String toUserId, String content) {
         User sender = users.get(fromUserId);
@@ -104,9 +88,8 @@ public class ChatCore {
                 0);
 
         directMessages.computeIfAbsent(chatKey, k -> new ArrayList<>()).add(message);
-        System.out.println("💬 Mensaje directo enviado de " + fromUserId + " a " + toUserId);
+        System.out.println(" Mensaje directo enviado de " + fromUserId + " a " + toUserId);
 
-        // 🔥 NOTIFICAR SOLO AL RECEPTOR (el emisor ya mostró el mensaje localmente)
         notifyClient(toUserId, message);
     }
 
@@ -121,7 +104,7 @@ public class ChatCore {
                 String.valueOf(messageIdCounter.incrementAndGet()),
                 fromUserId,
                 sender.name,
-                "🎤 Nota de voz",
+                " Nota de voz",
                 System.currentTimeMillis(),
                 toUserId,
                 false,
@@ -131,9 +114,8 @@ public class ChatCore {
 
         directMessages.computeIfAbsent(chatKey, k -> new ArrayList<>()).add(message);
         System.out.println(
-                "🎤 Audio directo enviado de " + fromUserId + " a " + toUserId + ". Duración: " + duration + "s");
+                " Audio directo enviado de " + fromUserId + " a " + toUserId + ". Duración: " + duration + "s");
 
-        // 🔥 NOTIFICAR SOLO AL RECEPTOR
         notifyClient(toUserId, message);
     }
 
@@ -182,8 +164,6 @@ public class ChatCore {
         return parts[0].equals(userId) ? parts[1] : parts[0];
     }
 
-    // === Gestión de grupos ===
-
     public String createGroup(String ownerId, String groupName, String[] memberIds) {
         User owner = users.get(ownerId);
         if (owner == null) {
@@ -197,9 +177,8 @@ public class ChatCore {
         Group group = new Group(groupId, groupName, ownerId, members);
         groups.put(groupId, group);
 
-        System.out.println("👥 Grupo creado: " + groupId + " (" + groupName + ") con " + members.size() + " miembros");
+        System.out.println(" Grupo creado: " + groupId + " (" + groupName + ") con " + members.size() + " miembros");
 
-        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS sobre el nuevo grupo
         ChatSummary groupSummary = new ChatSummary(
                 groupId,
                 groupName,
@@ -208,7 +187,7 @@ public class ChatCore {
                 true);
 
         for (String memberId : members) {
-            if (!memberId.equals(ownerId)) { // No notificar al creador
+            if (!memberId.equals(ownerId)) {
                 notifyNewGroup(memberId, groupSummary);
             }
         }
@@ -223,9 +202,8 @@ public class ChatCore {
         }
 
         group.memberIds.addAll(Arrays.asList(memberIds));
-        System.out.println("➕ Miembros agregados al grupo " + groupId);
+        System.out.println(" Miembros agregados al grupo " + groupId);
 
-        // Notificar a los nuevos miembros
         ChatSummary groupSummary = new ChatSummary(
                 groupId,
                 group.name,
@@ -250,8 +228,6 @@ public class ChatCore {
     public Map<String, Group> getGroups() {
         return Collections.unmodifiableMap(groups);
     }
-
-    // === Mensajes de grupo ===
 
     public void sendGroupMessage(String fromUserId, String groupId, String content) {
         User sender = users.get(fromUserId);
@@ -281,9 +257,8 @@ public class ChatCore {
                 0);
 
         groupMessages.computeIfAbsent(groupId, k -> new ArrayList<>()).add(message);
-        System.out.println("💬 Mensaje enviado al grupo " + groupId + " por " + fromUserId);
+        System.out.println(" Mensaje enviado al grupo " + groupId + " por " + fromUserId);
 
-        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS EXCEPTO AL EMISOR
         for (String memberId : group.memberIds) {
             if (!memberId.equals(fromUserId)) {
                 notifyClient(memberId, message);
@@ -310,7 +285,7 @@ public class ChatCore {
                 String.valueOf(messageIdCounter.incrementAndGet()),
                 fromUserId,
                 sender.name,
-                "🎤 Nota de voz",
+                " Nota de voz",
                 System.currentTimeMillis(),
                 groupId,
                 true,
@@ -320,9 +295,8 @@ public class ChatCore {
 
         groupMessages.computeIfAbsent(groupId, k -> new ArrayList<>()).add(message);
         System.out.println(
-                "🎤 Audio enviado al grupo " + groupId + " por " + fromUserId + ". Duración: " + duration + "s");
+                " Audio enviado al grupo " + groupId + " por " + fromUserId + ". Duración: " + duration + "s");
 
-        // 🔥 NOTIFICAR A TODOS LOS MIEMBROS EXCEPTO AL EMISOR
         for (String memberId : group.memberIds) {
             if (!memberId.equals(fromUserId)) {
                 notifyClient(memberId, message);
