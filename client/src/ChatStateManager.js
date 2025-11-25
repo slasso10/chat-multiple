@@ -122,29 +122,69 @@ class ChatStateManager {
         return this.activeChat && this.activeChat.id === chatId;
     }
 
-    formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
+    formatTimestamp(rawTimestamp) {
+        try {
+            // Manejar null/undefined rápidamente
+            if (rawTimestamp === null || rawTimestamp === undefined) return '';
+
+            // Si ya es un Date, usarlo directamente
+            if (rawTimestamp instanceof Date) {
+                const dateObj = rawTimestamp;
+                return this._formatByRules(dateObj);
+            }
+
+            // Convertir objetos tipo Ice Long (tienen toNumber) o BigInt o strings
+            let tsNumber;
+            if (typeof rawTimestamp === 'object' && typeof rawTimestamp.toNumber === 'function') {
+                tsNumber = rawTimestamp.toNumber();
+            } else if (typeof rawTimestamp === 'bigint') {
+                tsNumber = Number(rawTimestamp);
+            } else if (typeof rawTimestamp === 'string' && /^\d+$/.test(rawTimestamp)) {
+                tsNumber = parseInt(rawTimestamp, 10);
+            } else if (typeof rawTimestamp === 'number') {
+                tsNumber = rawTimestamp;
+            } else {
+                // No reconocible: intentar convertir de forma segura
+                tsNumber = Number(rawTimestamp);
+                if (Number.isNaN(tsNumber)) return '';
+            }
+
+            // Corregir si vienen en segundos (p. ej. 1_700_000_000) -> convertir a ms
+            // Si el número es menor que año 2001 en ms (1e12) lo tratamos como segundos
+            if (tsNumber < 1e12) {
+                tsNumber = tsNumber * 1000;
+            }
+
+            // Evitar fechas inválidas por overflow
+            if (!Number.isFinite(tsNumber) || tsNumber <= 0) return '';
+
+            const date = new Date(tsNumber);
+            if (isNaN(date.getTime())) return '';
+
+            return this._formatByRules(date);
+
+        } catch (err) {
+            console.error('formatTimestamp error:', err);
+            return '';
+        }
+    }
+
+    _formatByRules(date) {
         const now = new Date();
-        
+
         // Si es hoy, mostrar solo hora
         if (date.toDateString() === now.toDateString()) {
-            return date.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
+            return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         }
-        
+
         // Si es de esta semana, mostrar día de la semana
         const daysDiff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
         if (daysDiff < 7) {
             return date.toLocaleDateString('es-ES', { weekday: 'short' });
         }
-        
-        // De lo contrario, mostrar fecha completa
-        return date.toLocaleDateString('es-ES', { 
-            day: '2-digit', 
-            month: '2-digit' 
-        });
+
+        // De lo contrario, mostrar fecha completa (día/mes)
+        return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
     }
 }
 

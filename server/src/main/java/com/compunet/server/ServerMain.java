@@ -21,7 +21,7 @@ public class ServerMain {
             chatCore.setWebSocketHandler(webSocketHandler);
             webSocketHandler.start();
 
-            System.out.println("✅ Servidor WebSocket iniciado en puerto 8080");
+            System.out.println(" Servidor WebSocket iniciado en puerto 8080");
 
             // Inicializar Ice para servicios RPC
             communicator = Util.initialize(args);
@@ -41,17 +41,6 @@ public class ServerMain {
             // Activar el adapter
             adapter.activate();
 
-            System.out.println("===========================================");
-            System.out.println("    Servidor de Chat iniciado correctamente");
-            System.out.println("===========================================");
-            System.out.println("🌐 WebSocket (tiempo real): ws://localhost:8080");
-            System.out.println("📡 Ice WebSocket (RPC): ws://localhost:10000");
-            System.out.println("📡 Ice TCP (RPC): tcp://localhost:10001");
-            System.out.println("===========================================");
-            System.out.println("Servicios disponibles:");
-            System.out.println("  - ChatService (identity: 'chat')");
-            System.out.println("  - GroupService (identity: 'group')");
-            System.out.println("  - WebSocket Handler (notificaciones en tiempo real)");
             System.out.println("===========================================");
             System.out.println("Presiona Ctrl+C para detener el servidor");
             System.out.println();

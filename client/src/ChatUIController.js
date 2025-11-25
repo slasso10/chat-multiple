@@ -603,13 +603,37 @@ class ChatUIController {
                 
                 if (confirm('¿Enviar nota de voz?')) {
                     this.showLoading('Enviando audio...');
+                    const activeChat = chatState.getActiveChat();
+                    const currentUserId = chatState.getCurrentUserId();
+                    const currentUserName = chatState.getCurrentUserName();
+                    const duration = await audioManager.getAudioDuration(audioBlob); 
+
+                    
+                    const tempMessage = {
+                        messageId: 'temp-' + Date.now(), 
+                        chatId: activeChat.id,
+                        senderId: currentUserId,
+                        senderName: currentUserName,
+                        content: `Nota de Voz (${duration}s)`, 
+                        timestamp: Date.now(),
+                        isGroupMessage: activeChat.isGroup,
+                        isAudio: true,
+                        audioData: audioBlob, 
+                        audioDuration: duration 
+                    };
+
+                    
+                    chatState.addMessage(tempMessage);
+                    this.displayNewMessage(tempMessage);
                     await messageSender.sendAudio(audioBlob);
                     this.hideLoading();
+                    audioManager.cleanup();
                 }
             } catch (error) {
                 console.error('Error al enviar audio:', error);
                 alert('Error al enviar la nota de voz');
                 this.hideLoading();
+                audioManager.cleanup();
             }
         }
     }
